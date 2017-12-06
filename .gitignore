@@ -2,7 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/MEditor/v15
-/bin/x64/Debug
-/tmp
-/MEditor.sln
+.vs/*
+bin/*
+tmp/*
+MEditor.sln
