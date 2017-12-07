@@ -1,5 +1,7 @@
-require "fastbuild"
 require "qt"
+require "fastbuild"
+require "fastbuild-hooks"
+
 local qt = premake.extensions.qt
 
 fbcompilers { 
@@ -25,11 +27,16 @@ workspace "MEditor"
     platforms { "x64" }
     configurations { "Debug", "Release" }
 
+    -- If fastbuild is used then used the c7 debug format to enable obj file caching.
+    if _ACTION == "fastbuild" then
+        debugformat "c7"
+    end
+
     architecture "x64"
     toolset "v141"
 
     targetdir "bin/%{cfg.platform}/%{cfg.buildcfg}"
-    objdir "tmp/obj"
+    objdir "tmp/obj/%{cfg.platform}/%{cfg.buildcfg}/%{prj.name}"
 
     -- Enable QT support
     qt.enable()
