@@ -1,3 +1,6 @@
 [submodule ".modules/qt"]
 	path = .modules/qt
 	url = https://github.com/dcourtois/premake-qt.git
+[submodule ".modules/fastbuild"]
+	path = .modules/fastbuild
+	url = https://github.com/Dandielo/premake5-fastbuild.git
