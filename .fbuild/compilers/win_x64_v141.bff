@@ -1,0 +1,154 @@
+// Windows x64 compiler - { toolset v141 } - { winsdk 10.0 } - { VS Community }
+//----- 
+.msvcToolsetVersionFull = '14.11.25503'
+.msvcCompilerVersionFull = '14.11.25325'
+
+.mscWinSDKVersionMajor = '10'
+.mscWinSDKVersionFull = '10.0.16299.0'
+
+.mscToolset_v141 = 
+[
+    .BasePath_VSCommunity = 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community'
+    .BasePath_Binaries = '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\bin\HostX64\x64'
+
+    .ToolsetIncludeDirs = {
+        '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\include',
+        '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\atlmfc\include',
+        '$BasePath_VSCommunity$\VC\Auxiliary\VS\include',
+        '$BasePath_VSCommunity$\VC\Auxiliary\VS\UnitTest\include'
+    }
+    .ToolsetLibDirs = {
+        '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\lib\x64',
+        '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\atlmfc\lib\x64',
+        '$BasePath_VSCommunity$\VC\Auxiliary\VS\lib\x64',
+        '$BasePath_VSCommunity$\VC\Auxiliary\VS\UnitTest\lib'
+    }
+
+    .CompilerExe   = '$BasePath_Binaries$/cl.exe'
+    .LinkerExe     = '$BasePath_Binaries$/link.exe'
+    .LibrarianExe  = '$BasePath_Binaries$/lib.exe'
+    .AssemblyExe   = '$BasePath_Binaries$/ml64.exe'
+]
+
+.mscWindowsSDK_10 = 
+[
+    .BasePath_WinSDK = 'C:\Program Files (x86)\Windows Kits\$mscWinSDKVersionMajor$'
+
+    .WinSDKIncludeDirs = {
+        '$BasePath_WinSDK$\Include\$mscWinSDKVersionFull$\ucrt',
+        '$BasePath_WinSDK$\Include\$mscWinSDKVersionFull$\um',
+        '$BasePath_WinSDK$\Include\$mscWinSDKVersionFull$\shared',
+        '$BasePath_WinSDK$\Include\$mscWinSDKVersionFull$\winrt'
+    }
+    .WinSDKLibDirs = {
+        '$BasePath_WinSDK$\lib\$mscWinSDKVersionFull$\ucrt\x64',
+        '$BasePath_WinSDK$\Lib\$mscWinSDKVersionFull$\um\x64'
+    }
+]
+
+Compiler( 'msc64_v141_compiler' )
+{
+    Using( .mscToolset_v141 )
+
+    .Executable = .CompilerExe
+    .ExtraFiles = {
+        '$BasePath_Binaries$\c1.dll',
+        '$BasePath_Binaries$\c1xx.dll',
+        '$BasePath_Binaries$\c2.dll',
+        '$BasePath_Binaries$\msobj140.dll',
+        '$BasePath_Binaries$\mspdb140.dll',
+        '$BasePath_Binaries$\mspdbcore.dll',
+        '$BasePath_Binaries$\mspdbsrv.exe',
+        '$BasePath_Binaries$\mspft140.dll',
+        '$BasePath_Binaries$\1033\clui.dll',
+        '$BasePath_VSCommunity$\VC\Redist\MSVC\$msvcCompilerVersionFull$\x64\Microsoft.VC141.CRT\msvcp140.dll',
+        '$BasePath_VSCommunity$\VC\Redist\MSVC\$msvcCompilerVersionFull$\x64\Microsoft.VC141.CRT\concrt140.dll',
+        '$BasePath_VSCommunity$\VC\Redist\MSVC\$msvcCompilerVersionFull$\x64\Microsoft.VC141.CRT\vccorlib140.dll',
+        '$BasePath_VSCommunity$\VC\Redist\MSVC\$msvcCompilerVersionFull$\x64\Microsoft.VC141.CRT\vcruntime140.dll',
+    }
+}
+
+.msc64_v141_CompilerOptions = 
+[
+    Using( .mscToolset_v141 )
+    Using( .mscWindowsSDK_10 )
+
+    .Compiler = 'msc64_v141_compiler'
+    .CompilerOptions = '"%1"'
+        + ' /Fo"%2"'
+        + ' /c'
+        + ' /nologo'
+        + ' /FS'
+
+    .PCHOptions = '"%1"'
+        + ' /Fo"%3"'
+        + ' /c'
+        + ' /nologo'
+        + ' /FS'
+
+    ForEach( .IncDir in .ToolsetIncludeDirs )
+    {
+        ^PCHOptions + ' /I"$IncDir$"'
+        ^CompilerOptions + ' /I"$IncDir$"'
+    }
+    ForEach( .IncDir in .WinSDKIncludeDirs )
+    {
+        ^PCHOptions + ' /I"$IncDir$"'
+        ^CompilerOptions + ' /I"$IncDir$"'
+    }
+]
+
+.msc64_v141_LinkerOptions = 
+[
+    Using( .mscToolset_v141 )
+    Using( .mscWindowsSDK_10 )
+
+    .Linker = .LinkerExe
+    .LinkerOptions = ' /OUT:"%2"'
+        + ' "%1"'
+        + ' /NOLOGO'
+        + ' /MACHINE:x64'
+        + ' /NXCOMPAT'
+        + ' /DYNAMICBASE'
+        + ' "kernel32.lib"'
+        + ' "user32.lib"'
+        + ' "gdi32.lib"'
+        + ' "winspool.lib"'
+        + ' "comdlg32.lib"'
+        + ' "advapi32.lib"'
+        + ' "shell32.lib"'
+        + ' "ole32.lib"'
+        + ' "oleaut32.lib"'
+        + ' "uuid.lib"'
+        + ' "odbc32.lib"'
+        + ' "odbccp32.lib"'
+        + ' "delayimp.lib"'
+
+    ForEach( .LibDir in .ToolsetLibDirs )
+    {
+        ^LinkerOptions + ' /LIBPATH:"$LibDir$"'
+    }
+    ForEach( .LibDir in .WinSDKLibDirs )
+    {
+        ^LinkerOptions + ' /LIBPATH:"$LibDir$"'
+    }
+]
+
+.msc64_v141_LibrarianOptions = 
+[
+    Using( .mscToolset_v141 )
+    Using( .mscWindowsSDK_10 )
+
+    .Librarian = .LibrarianExe
+    .LibrarianOptions = ' /OUT:"%2"'
+        + ' "%1"'
+        + ' /NOLOGO'
+        + ' /MACHINE:x64'
+]
+
+.platform_windows_x86_64_msc_v141 = 
+[
+    Using( .msc64_v141_CompilerOptions )
+    Using( .msc64_v141_LinkerOptions )
+    Using( .msc64_v141_LibrarianOptions )
+]

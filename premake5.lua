@@ -1,5 +1,16 @@
+require "fastbuild"
 require "qt"
 local qt = premake.extensions.qt
+
+fbcompilers { 
+    {
+        name = "win64_x64",
+        system = "windows",
+        architecture = "x86_64",
+        toolset = "msc_v141",
+        path = ".fbuild/compilers/win_x64_v141.bff"
+    }
+}
 
 newoption { 
     trigger = "qtbasepath",
@@ -15,6 +26,7 @@ workspace "MEditor"
     configurations { "Debug", "Release" }
 
     architecture "x64"
+    toolset "v141"
 
     targetdir "bin/%{cfg.platform}/%{cfg.buildcfg}"
     objdir "tmp/obj"
