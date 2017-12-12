@@ -262,11 +262,6 @@ void editor::QScriptedNode::removePin(editor::QNodePin* pin)
     }
 }
 
-//void editor::QScriptedNode::releaseNode()
-//{
-//    deleteLater();
-//}
-
 bool editor::QScriptedNode::event(QEvent* event)
 {
     //if (event->type() == QNodePinValueEvent::EventType)

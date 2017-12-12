@@ -100,7 +100,7 @@ void editor::QNodePin::initialize()
     {
         _rect.setWidth(node_rect.width() - Spacing * 2);
         _value_rect.setLeft(text_rect.width() + pinBoundingRect().width() + Spacing * 2);
-        _value_rect.setRight(node_rect.width() - Spacing * 2);
+        _value_rect.setRight(node_rect.width() - Spacing * 3);
     }
     else // type == PinType::Output
     {
@@ -108,7 +108,7 @@ void editor::QNodePin::initialize()
         _rect.setWidth(node_rect.width() - Spacing * 2);
 
         _value_rect.setLeft(_rect.left());
-        _value_rect.setRight(-text_rect.width() - (Spacing * 2));
+        _value_rect.setRight(-text_rect.width() - (Spacing * 3));
     }
 }
 

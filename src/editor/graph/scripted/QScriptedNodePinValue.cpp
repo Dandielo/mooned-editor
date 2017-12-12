@@ -91,11 +91,35 @@ protected:
             if (_property->nodePin()->pinType() == editor::PinType::Input)
             {
                 QScriptedNodePinValue* pin_value = _connected_value != nullptr ? _connected_value : this;
-                painter->drawText(boundingRect(), pin_value->toString());
+                QString text = pin_value->toString();
+
+                painter->drawText(boundingRect(), text);
+
+                if (_property->nodePin()->editable())
+                {
+                    QRectF line_rect = boundingRect().adjusted(0, -2, 0, -2);
+                    line_rect.setWidth(TextMetrics.width(text) + 3);
+
+                    painter->setPen(QPen(color(), 1, Qt::DashLine));
+                    painter->drawLine(line_rect.bottomLeft(), line_rect.bottomRight());
+                }
             }
             else // pin->pinType() == PinType::Output
             {
                 painter->drawText(boundingRect(), toString(), QTextOption(Qt::AlignRight));
+
+                if (_property->nodePin()->editable())
+                {
+                    auto box_width = boundingRect().width();
+                    auto text_width = TextMetrics.width(toString());
+                    box_width -= text_width;
+
+                    QRectF line_rect = boundingRect().adjusted(box_width, -2, box_width, -2);
+                    line_rect.setWidth(text_width + 3);
+
+                    painter->setPen(QPen(color(), 1, Qt::DashLine));
+                    painter->drawLine(line_rect.bottomLeft(), line_rect.bottomRight());
+                }
             }
         }
     }
