@@ -1,9 +1,11 @@
 #include "QScriptedNodePin.h"
 #include "QScriptedNodePinValue.h"
 #include "QScriptedNode.h"
+#include "QScriptedNodeEvent.h"
 
 #include "graph/basic/QBasicNodeConnection.h"
 
+#include <QCoreApplication>
 #include <cassert>
 
 editor::QScriptedNodePin::QScriptedNodePin(QScriptedNode* parent, PinType type, QString name)
@@ -11,6 +13,7 @@ editor::QScriptedNodePin::QScriptedNodePin(QScriptedNode* parent, PinType type, 
     , _type(type)
     , _name(name)
 {
+    setParent(parent);
 }
 
 editor::QScriptedNodePin::~QScriptedNodePin()
@@ -22,6 +25,11 @@ void editor::QScriptedNodePin::initialize(Scripts::CScriptManager* script_manage
     QNodePin::initialize();
 
     _script_manager = script_manager;
+}
+
+void editor::QScriptedNodePin::shutdown()
+{
+    delete _value;
 }
 
 void editor::QScriptedNodePin::connect(editor::QNodeConnection* connection)
@@ -44,6 +52,9 @@ void editor::QScriptedNodePin::connect(editor::QNodeConnection* connection)
     }
 
     QBasicNodePin::connect(connection);
+
+    // Send and update event to the parent node object
+    QCoreApplication::postEvent(parent(), new editor::QScriptedNodeEvent{});
 }
 
 void editor::QScriptedNodePin::disconnect(QNodeConnection* connection)
@@ -62,6 +73,9 @@ void editor::QScriptedNodePin::disconnect(QNodeConnection* connection)
             _value->setConnectedValue(nullptr);
         }
     }
+
+    // Send and update event to the parent node object
+    QCoreApplication::postEvent(parent(), new editor::QScriptedNodeEvent{});
 }
 
 void editor::QScriptedNodePin::setValue(QScriptedNodePinValue* val)

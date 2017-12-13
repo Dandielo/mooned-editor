@@ -20,6 +20,7 @@ namespace editor
         virtual ~QScriptedGraph() override;
 
         void initialize(Scripts::CScriptManager* script_manager);
+        void shutdown();
 
         virtual QString name() const override;
         virtual QGraphView* view() const override { return _view; }

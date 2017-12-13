@@ -14,6 +14,8 @@ public:
     virtual ~QScriptedWorkspaceWindow() override;
 
     void initialize(Scripts::CScriptManager* script_manager);
+    void shutdown();
+
     virtual void addWorkspace(QWorkspace* workspace) override;
     virtual QWorkspace* activeWorkspace() override;
 

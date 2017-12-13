@@ -16,6 +16,7 @@ namespace editor
         virtual ~QScriptedNodePin() override;
 
         void initialize(Scripts::CScriptManager* script_manager);
+        void shutdown();
 
         virtual void connect(editor::QNodeConnection* connection) override;
         virtual void disconnect(QNodeConnection* connection) override;

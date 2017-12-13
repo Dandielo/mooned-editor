@@ -17,8 +17,6 @@ editor::QScriptedNodeProperty::QScriptedNodeProperty(asITypeInfo* type, int subt
 
 editor::QScriptedNodeProperty::~QScriptedNodeProperty()
 {
-    delete _node_pin->value();
-    _node_pin->setValue(nullptr);
 }
 
 void editor::QScriptedNodeProperty::initialize(Scripts::CScriptManager* manager, QScriptedNode* node, int index)
@@ -56,5 +54,5 @@ void editor::QScriptedNodeProperty::initialize(Scripts::CScriptManager* manager,
 
 void editor::QScriptedNodeProperty::copyFrom(const QScriptedNodeProperty& other)
 {
-    assert(false);
+    _node_pin->value()->setValue(other.nodePin()->value()->resolvedValue());
 }

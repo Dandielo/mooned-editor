@@ -7,8 +7,17 @@ class BasicGraph : CGraph
     {
         print(title + " graph created.");
 
-        INode@ n = createNode("ExampleNode");
+        INode@ n = createNode("TutorialNode");
         n.move(4900, 4900); // move to center
+
+        @n = createNode("TutorialNodeIn");
+        n.move(5100, 4900); // move to center
+
+        TutorialNodeIn@ tn = cast<TutorialNodeIn@>(n);
+        if (tn !is null)
+        {
+            tn.setGraph(this);
+        }
     }
 
     void OnDestroy()

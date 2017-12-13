@@ -45,7 +45,6 @@ editor::QScriptedGraph::QScriptedGraph(asIScriptObject* obj)
 
 editor::QScriptedGraph::~QScriptedGraph()
 {
-    CallScriptMethod("OnDestroy");
 }
 
 void editor::QScriptedGraph::initialize(Scripts::CScriptManager* script_manager)
@@ -56,6 +55,21 @@ void editor::QScriptedGraph::initialize(Scripts::CScriptManager* script_manager)
     setWindowTitle(QString::fromStdString(_script_manager->GetTypeAttr(_type, "name")));
 
     CallScriptMethod("OnCreate");
+}
+
+void editor::QScriptedGraph::shutdown()
+{
+    CallScriptMethod("OnDestroy");
+
+    for (auto* node : nodes())
+    {
+        auto* snode = dynamic_cast<editor::QScriptedNode*>(node);
+        if (snode)
+        {
+            snode->shutdown();
+        }
+        delete node;
+    }
 }
 
 QString editor::QScriptedGraph::name() const

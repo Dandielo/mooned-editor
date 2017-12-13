@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "graph/interfaces/QNode.h"
 #include "scripts/CNativeScriptObject.h"
 
@@ -14,7 +14,8 @@ namespace editor
         virtual ~QScriptedNode() override;
 
         void initialize(Scripts::CScriptManager* script_Manager);
-        
+        void shutdown();
+
         virtual QString name() const override;
         virtual void setName(QString value);
 

@@ -23,12 +23,10 @@ void QScriptedWorkspaceWindow::registerTypeInterface(asIScriptEngine* engine)
 
 QScriptedWorkspaceWindow::QScriptedWorkspaceWindow(asIScriptObject* obj) : QWorkspaceWindow(), CNativeScriptObject(obj)
 {
-    CallScriptMethod("OnCreate");
 }
 
 QScriptedWorkspaceWindow::~QScriptedWorkspaceWindow()
 {
-    CallScriptMethod("OnDestroy");
 }
 
 void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manager)
@@ -40,6 +38,19 @@ void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manage
 
     _workspace = graph;
     addDockWidget(Qt::LeftDockWidgetArea, _workspace);
+
+    CallScriptMethod("OnCreate");
+}
+
+void QScriptedWorkspaceWindow::shutdown()
+{
+    CallScriptMethod("OnDestroy");
+
+    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+    {
+        graph->shutdown();
+    }
+    delete _workspace;
 }
 
 void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)

@@ -1,6 +1,7 @@
 #include "QScriptedNodePinValue.h"
 #include "QScriptedNodeProperty.h"
 #include "QScriptedNodePin.h"
+#include "QScriptedNodeEvent.h"
 
 #include "graph/utils/QGraphicsLineEdit.h"
 #include "scripts/CScriptManager.h"
@@ -38,9 +39,17 @@ public:
         return { _value };
     }
 
-    virtual void setValue(QVariant val) override
+    virtual QVariant resolvedValue() const override
+    {
+        return { _connected_value ? _connected_value->value() : _value };
+    }
+
+    virtual void setValue(QVariant val) override final
     {
         _value = qvariant_cast<T>(val);
+
+        // Send and update event to the parent node object
+        QCoreApplication::postEvent(_property->nodePin()->parent(), new editor::QScriptedNodeEvent{});
     }
 
     virtual void beginEdit() override

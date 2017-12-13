@@ -1,11 +1,14 @@
 #include "QScriptedNode.h"
 #include "QScriptedNodePin.h"
 #include "QScriptedNodeProperty.h"
+#include "QScriptedNodeEvent.h"
+#include "graph/basic/QBasicNodeConnection.h"
 
 #include "scripts/CScriptManager.h"
 
 #include <QFont>
 #include <QEvent>
+#include <QCoreApplication>
 #include <cassert>
 
 editor::QScriptedNode::QScriptedNode(asIScriptObject* object) : QNode(), CNativeScriptObject(object)
@@ -74,18 +77,6 @@ editor::QScriptedNode::QScriptedNode(asIScriptObject* object) : QNode(), CNative
 
 editor::QScriptedNode::~QScriptedNode()
 {
-    CallScriptMethod("OnDestroy");
-
-    for (QNodePin* pin : _input_pins)
-    {
-        pin->disconnectAll();
-        pin->deleteLater();
-    }
-    for (QNodePin* pin : _output_pins)
-    {
-        pin->disconnectAll();
-        pin->deleteLater();
-    }
 }
 
 void editor::QScriptedNode::initialize(Scripts::CScriptManager* script_Manager)
@@ -163,6 +154,32 @@ void editor::QScriptedNode::initialize(Scripts::CScriptManager* script_Manager)
 
     // Call the script callback
     CallScriptMethod("OnCreate");
+}
+
+void editor::QScriptedNode::shutdown()
+{
+    CallScriptMethod("OnDestroy");
+
+    for (QNodePin* pin : _input_pins)
+    {
+        pin->disconnectAll();
+        auto* spin = dynamic_cast<QScriptedNodePin*>(pin);
+        if (spin)
+        {
+            spin->shutdown();
+        }
+        delete pin;
+    }
+    for (QNodePin* pin : _output_pins)
+    {
+        pin->disconnectAll();
+        auto* spin = dynamic_cast<QScriptedNodePin*>(pin);
+        if (spin)
+        {
+            spin->shutdown();
+        }
+        delete pin;
+    }
 }
 
 QString editor::QScriptedNode::name() const
@@ -264,10 +281,23 @@ void editor::QScriptedNode::removePin(editor::QNodePin* pin)
 
 bool editor::QScriptedNode::event(QEvent* event)
 {
-    //if (event->type() == QNodePinValueEvent::EventType)
-    //{
-    //    CallScriptMethod("Update");
-    //    return true;
-    //}
+    if (event->type() == QScriptedNodeEvent::Type)
+    {
+        CallScriptMethod("Update");
+
+        for (QNodePin* out_pin : _output_pins)
+        {
+            if (out_pin->isConnected())
+            {
+                for (QNodeConnection* conn : out_pin->connections())
+                {
+                    QCoreApplication::postEvent(conn->inputPin()->parent(), new QScriptedNodeEvent{});
+                }
+            }
+        }
+
+        update();
+        return true;
+    }
     return QNode::event(event);
 }

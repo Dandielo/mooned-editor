@@ -18,10 +18,10 @@ void Scripts::CNativeScriptObject<T>::registerType(asIScriptEngine* engine)
     int r;
     std::string factory_name = std::string(T::ClassName) + "@ f()";
 
-    r = engine->RegisterObjectType(T::ClassName, 0, asOBJ_REF); 
-    r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_FACTORY, factory_name.c_str(), asFUNCTION(CNativeScriptObject::ObjectFactory), asCALL_CDECL); 
-    r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_ADDREF, "void f()", asMETHOD(T, AddRef), asCALL_THISCALL);
-    r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_RELEASE, "void f()", asMETHOD(T, Release), asCALL_THISCALL);
+    r = engine->RegisterObjectType(T::ClassName, 0, asOBJ_REF | asOBJ_NOCOUNT);
+    r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_FACTORY, factory_name.c_str(), asFUNCTION(CNativeScriptObject::ObjectFactory), asCALL_CDECL);
+    //r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_ADDREF, "void f()", asMETHOD(T, AddRef), asCALL_THISCALL);
+    //r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_RELEASE, "void f()", asMETHOD(T, Release), asCALL_THISCALL);
     T::registerTypeInterface(engine);
 }
 

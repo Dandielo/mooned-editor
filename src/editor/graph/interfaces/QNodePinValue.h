@@ -18,6 +18,7 @@ namespace editor
         virtual uint typeId() const = 0;
 
         virtual QVariant value() const = 0;
+        virtual QVariant resolvedValue() const = 0;
         virtual void setValue(QVariant val) = 0;
 
         virtual void beginEdit() = 0;

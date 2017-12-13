@@ -141,8 +141,7 @@ static void asPropertyNative_Construct(void* memory)
 static void asPropertyNative_OpAssingCopy(editor::QScriptedNodeProperty* other, editor::QScriptedNodeProperty* object)
 {
     if (object == other) return;
-    //object->copyFrom(other);
-    assert(false);
+    object->copyFrom(*other);
 }
 
 template<class T>
@@ -156,7 +155,7 @@ template<class T>
 T asPropertyNative_OpImplConv(editor::QScriptedNodeProperty* object)
 {
     assert(object->subTypeId() == asTypeIdFromType<T>());
-    return qvariant_cast<T>(object->nodePin()->value()->value());
+    return qvariant_cast<T>(object->nodePin()->value()->resolvedValue());
 }
 
 template<class T>

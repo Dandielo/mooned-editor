@@ -23,6 +23,7 @@ QEditorMainWindow::QEditorMainWindow() : QMainWindow()
 
 QEditorMainWindow::~QEditorMainWindow()
 {
+    reinterpret_cast<QScriptedWorkspaceWindow*>(_workspace_window)->shutdown();
     delete _workspace_window;
     delete _script_manager;
 }
