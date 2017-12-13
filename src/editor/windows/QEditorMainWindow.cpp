@@ -5,6 +5,7 @@
 #include "ui_mainwindow.h"
 
 #include <QMenuBar>
+#include <QFileDialog>
 
 static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWindow* ui, QMenuBar* menu)
 {
@@ -13,12 +14,19 @@ static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWind
     QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onSave);
 
     action = ui->menuEdit->addAction("&Open");
-    action->setSeparator(QKeySequence::Open);
+    action->setShortcut(QKeySequence::Open);
     QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onLoad);
 
     action = ui->menuEdit->addAction("&Export");
-    action->setSeparator(QKeySequence::Open);
     QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onLoad);
+
+    // Project actions
+    action = ui->menuFile->addAction("&New project");
+    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onNewProject);
+    action = ui->menuFile->addAction("&Open project");
+    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onOpenProject);
+    action = ui->menuFile->addAction("&Save project");
+    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onSaveProject);
 }
 
 QEditorMainWindow::QEditorMainWindow()
@@ -26,7 +34,7 @@ QEditorMainWindow::QEditorMainWindow()
     , _workspace_window{ nullptr }
     , _script_manager{ nullptr }
     , _project_model{ nullptr }
-    , _project{ nullptr }
+    , _projects{ }
 {
     Ui::QTWindow window_ui;
     window_ui.setupUi(this);
@@ -54,23 +62,31 @@ QEditorMainWindow::QEditorMainWindow()
     // Setup other UI elements
     _project_model = new editor::QProjectModel{};
     window_ui.projectsFileTree->setModel(_project_model);
+}
 
+QEditorMainWindow::~QEditorMainWindow()
+{
+    for (auto* prj : _projects)
+    {
+        delete prj;
+    }
+
+    reinterpret_cast<QScriptedWorkspaceWindow*>(_workspace_window)->shutdown();
+    delete _workspace_window;
+    delete _script_manager;
+}
+
+QString QEditorMainWindow::projectDir()
+{
     QDir projects_path = QDir::homePath() + "/meditor";
     projects_path = projects_path.canonicalPath();
+
     if (!projects_path.exists())
     {
         QDir(QDir::homePath()).mkdir("meditor");
     }
 
-    _project = new editor::QProject{ "Test", projects_path };
-    _project_model->addProject(_project);
-}
-
-QEditorMainWindow::~QEditorMainWindow()
-{
-    reinterpret_cast<QScriptedWorkspaceWindow*>(_workspace_window)->shutdown();
-    delete _workspace_window;
-    delete _script_manager;
+    return projects_path.canonicalPath();
 }
 
 void QEditorMainWindow::onSave()
@@ -81,5 +97,36 @@ void QEditorMainWindow::onSave()
 void QEditorMainWindow::onLoad()
 {
     _workspace_window->onLoad();
+}
+
+void QEditorMainWindow::onNewProject()
+{
+    auto project = new editor::QProject{ "Test", projectDir() };
+    _projects.append(_projects);
+    _project_model->addProject(project);
+}
+
+void QEditorMainWindow::onOpenProject()
+{
+    auto project = new editor::QProject{ };
+
+    // Find a project file
+    QString file_path = QFileDialog::getOpenFileName(this, "Open project file...", projectDir());
+    project->open({ file_path });
+
+    if (project->isValid())
+    {
+        // Add the project (if valid)
+        _projects.append(_projects);
+        _project_model->addProject(project);
+    }
+    else
+    {
+        delete project;
+    }
+}
+
+void QEditorMainWindow::onSaveProject()
+{
 }
 

@@ -41,6 +41,8 @@ void editor::QProjectModel::addProject(QProject* project)
     {
         _projects.append(new editor::QProjectTree{ project });
     }
+
+    layoutChanged();
 }
 
 void editor::QProjectModel::removeProject(QProject* project)
@@ -49,6 +51,8 @@ void editor::QProjectModel::removeProject(QProject* project)
     {
         _projects.remove(_projects.indexOf(find(_projects, project)));
     }
+
+    layoutChanged();
 }
 
 int editor::QProjectModel::rowCount(const QModelIndex &parent /*= QModelIndex()*/) const

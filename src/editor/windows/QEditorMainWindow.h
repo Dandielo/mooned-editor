@@ -17,9 +17,16 @@ public:
     QEditorMainWindow();
     virtual ~QEditorMainWindow() override;
 
+    QString projectDir();
+
 public slots:
     void onSave();
     void onLoad();
+
+    // Project action slots
+    void onNewProject();
+    void onOpenProject();
+    void onSaveProject();
 
 private:
     QWorkspaceWindow* _workspace_window;
@@ -27,5 +34,5 @@ private:
 
 private:
     editor::QProjectModel* _project_model;
-    editor::QProject* _project;
+    QVector<editor::QProject*> _projects;
 };
