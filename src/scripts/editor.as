@@ -1,4 +1,4 @@
-
+[editor]
 class Editor : CWorkspaceWindow
 {
     void OnCreate() 

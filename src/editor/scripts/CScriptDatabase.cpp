@@ -17,9 +17,9 @@ namespace Internal
         size_t at;
         while ((at = metadata.find_first_of(delim)) != std::string::npos)
         {
-            out.emplace_back(metadata.substr(0, at)); 
+            out.emplace_back(metadata.substr(0, at));
             metadata = metadata.substr(at + 1);
-        }  
+        }
         out.emplace_back(metadata);
     }
 
@@ -44,7 +44,7 @@ public:
     CEntry(std::string value) : m_Value(value) { }
     virtual ~CEntry() { }
 
-    std::string value() const 
+    std::string value() const
     {
         return m_Value;
     }
@@ -63,7 +63,7 @@ public:
     CTypeEntry(std::string value, asITypeInfo* type) : CEntry(value), m_Type(type) { }
 
     int id() const override
-    { 
+    {
         return ID;
     }
 
@@ -148,7 +148,7 @@ std::vector<asITypeInfo*> CScriptDatabase::QueryTypes(std::string query) const
         });
     }
 
-    // If we got attribs add only valid types 
+    // If we got attribs add only valid types
     assert(!m_TypeMetadata.empty());// , "No script types are registered in the database!");
     if (!m_TypeMetadata.empty())
     {
@@ -161,7 +161,7 @@ std::vector<asITypeInfo*> CScriptDatabase::QueryTypes(std::string query) const
             std::for_each(types.begin(), types.end(), [&](std::shared_ptr<CEntry> entry)
             {
                 if (entry->value() == attr.second && entry->getTypeinfo() != nullptr)
-                { 
+                {
                     results.push_back(entry->getTypeinfo());
                 }
             });
@@ -202,7 +202,7 @@ std::string CScriptDatabase::GetTypeAttr(asITypeInfo* type, std::string attribut
         {
             if (entry->getTypeinfo() == type)
                 result = entry->value();
-        });   
+        });
     }
     return result;
 }

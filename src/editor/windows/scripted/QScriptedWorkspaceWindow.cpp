@@ -1,12 +1,15 @@
 #include "QScriptedWorkspaceWindow.h"
+
+#include "graph/basic/QBasicGraphSerializer.h"
 #include "graph/scripted/QScriptedGraph.h"
 
 #include <cassert>
+#include <QBuffer>
+#include <QApplication>
+#include <QClipboard>
 
 asIScriptObject* QEditorWindowNewWorkspaceProxy(QScriptedWorkspaceWindow* window, std::string type_name)
 {
-    //auto wks = window->newScriptWorkspace(type_name)->ScriptObject();
-    //wks->AddRef();
     return nullptr;
 }
 
@@ -37,6 +40,7 @@ void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manage
     graph->initialize(_script_manager);
 
     _workspace = graph;
+    _default_serializer = new editor::QBasicGraphSerializer();
     addDockWidget(Qt::LeftDockWidgetArea, _workspace);
 
     CallScriptMethod("OnCreate");
@@ -47,10 +51,13 @@ void QScriptedWorkspaceWindow::shutdown()
     CallScriptMethod("OnDestroy");
 
     auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+    if (graph)
     {
         graph->shutdown();
     }
+
     delete _workspace;
+    delete _default_serializer;
 }
 
 void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)
@@ -60,4 +67,29 @@ void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)
 QWorkspace* QScriptedWorkspaceWindow::activeWorkspace()
 {
     return _workspace;
+}
+
+void QScriptedWorkspaceWindow::onSave()
+{
+    QBuffer buffer{};
+    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
+
+    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+    if (graph != nullptr)
+    {
+        _default_serializer->serialize(&buffer, graph);
+        QApplication::clipboard()->setText(buffer.buffer());
+    }
+}
+
+void QScriptedWorkspaceWindow::onLoad()
+{
+    QBuffer buffer{};
+    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
+
+    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+    if (graph != nullptr)
+    {
+        _default_serializer->serialize(&buffer, graph);
+    }
 }

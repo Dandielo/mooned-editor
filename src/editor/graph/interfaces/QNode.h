@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "QNodePin.h"
 
 #include <QGraphicsItem>
@@ -16,7 +16,7 @@ namespace editor
         virtual void initialize();
 
         // Node const attributes
-        virtual QRectF boundingRect() const;
+        virtual QRectF boundingRect() const override;
         virtual QRectF minBoundingRect();
 
         // Node properties
@@ -27,9 +27,6 @@ namespace editor
         virtual QVector<QNodePin*> inputPins() const = 0;
         virtual QVector<QNodePin*> outputPins() const = 0;
 
-        //// State interface
-        //virtual void releaseNode() = 0;
-
     protected:
         virtual void calculatePinPositions();
 
@@ -39,26 +36,8 @@ namespace editor
         QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
 
     protected:
-        // Node rect (resize-able)
         QRectF _rect;
         QRectF _min_rect;
         bool _dirty;
-
-        //QRectF m_ResizeRect;
-
-        //// Node color
-        //bool m_Selected;
-
-        //// Node Pins
-        //QVector<QNodePin*> m_InputPins;
-        //QVector<QNodePin*> m_OutputPins;
-
-    private:
-        //bool m_CanRename;
-        //bool m_CanResize;
-
-        //// Node event helpers
-        //bool m_Resizing;
-        //QPointF m_MouseLastPos;
     };
 }

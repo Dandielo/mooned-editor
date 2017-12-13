@@ -4,6 +4,8 @@
 #include "scripts/CNativeScriptObject.h"
 #include "scripts/CScriptManager.h"
 
+#include "graph/interfaces/QGraphSerializer.h"
+
 class QScriptedWorkspaceWindow : public QWorkspaceWindow, public Scripts::CNativeScriptObject<QScriptedWorkspaceWindow>
 {
     Q_OBJECT;
@@ -19,7 +21,14 @@ public:
     virtual void addWorkspace(QWorkspace* workspace) override;
     virtual QWorkspace* activeWorkspace() override;
 
+public slots:
+    virtual void onSave() override;
+    virtual void onLoad() override;
+
 private:
     Scripts::CScriptManager* _script_manager;
     QWorkspace* _workspace;
+
+private:
+    editor::QGraphSerializer* _default_serializer;
 };
