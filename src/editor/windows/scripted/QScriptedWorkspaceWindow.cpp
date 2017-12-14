@@ -8,6 +8,31 @@
 #include <QApplication>
 #include <QClipboard>
 
+static void releaseWorkspace(QWorkspace* workspace)
+{
+    auto* graph = dynamic_cast<editor::QScriptedGraph*>(workspace);
+    if (graph != nullptr)
+    {
+        graph->shutdown();
+    }
+
+    delete workspace;
+}
+
+static QWorkspace* findWorkspaceByName(QVector<QWorkspace*>& workspaces, QString name)
+{
+    QWorkspace* result = nullptr;
+    for (QWorkspace* wks : workspaces)
+    {
+        if (wks->name() == name)
+        {
+            result = wks;
+            break;
+        }
+    }
+    return result;
+}
+
 asIScriptObject* QEditorWindowNewWorkspaceProxy(QScriptedWorkspaceWindow* window, std::string type_name)
 {
     return nullptr;
@@ -35,13 +60,12 @@ QScriptedWorkspaceWindow::~QScriptedWorkspaceWindow()
 void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
+    auto types = _script_manager->QueryTypes("[graph] : CGraph");
 
-    auto* graph = _script_manager->CreateObject<editor::QScriptedGraph, 1>("BasicGraph");
-    graph->initialize(_script_manager);
-
-    _workspace = graph;
-    _default_serializer = new editor::QBasicGraphSerializer();
-    addDockWidget(Qt::LeftDockWidgetArea, _workspace);
+    for (auto* type : types)
+    {
+        _workspace_types.append(type->GetName());
+    }
 
     CallScriptMethod("OnCreate");
 }
@@ -50,46 +74,58 @@ void QScriptedWorkspaceWindow::shutdown()
 {
     CallScriptMethod("OnDestroy");
 
-    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
-    if (graph)
+    for (auto* workspace : _workspaces)
     {
-        graph->shutdown();
-    }
-
-    delete _workspace;
-    delete _default_serializer;
-}
-
-void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)
-{
-}
-
-QWorkspace* QScriptedWorkspaceWindow::activeWorkspace()
-{
-    return _workspace;
-}
-
-void QScriptedWorkspaceWindow::onSave()
-{
-    QBuffer buffer{};
-    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
-
-    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
-    if (graph != nullptr)
-    {
-        _default_serializer->serialize(&buffer, graph);
-        QApplication::clipboard()->setText(buffer.buffer());
+        releaseWorkspace(workspace);
     }
 }
 
-void QScriptedWorkspaceWindow::onLoad()
+void QScriptedWorkspaceWindow::closeWorkspace(QString name)
 {
-    QBuffer buffer{};
-    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
-
-    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
-    if (graph != nullptr)
+    auto* workspace = findWorkspaceByName(_workspaces, name);
+    if (workspace)
     {
-        _default_serializer->serialize(&buffer, graph);
+        _workspaces.removeAt(_workspaces.indexOf(workspace));
+
+        if (_active_workspace == workspace && !_workspaces.isEmpty())
+        {
+            _active_workspace = _workspaces.last();
+            _active_workspace->setFocus();
+        }
+        else if(_active_workspace == workspace)
+        {
+            _active_workspace = nullptr;
+        }
+
+        releaseWorkspace(workspace);
     }
 }
+
+void QScriptedWorkspaceWindow::createWorkspace()
+{
+}
+
+//void QScriptedWorkspaceWindow::onSave()
+//{
+//    QBuffer buffer{};
+//    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
+//
+//    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+//    if (graph != nullptr)
+//    {
+//        _default_serializer->serialize(&buffer, graph);
+//        QApplication::clipboard()->setText(buffer.buffer());
+//    }
+//}
+//
+//void QScriptedWorkspaceWindow::onLoad()
+//{
+//    QBuffer buffer{};
+//    buffer.open(QBuffer::Text | QBuffer::WriteOnly);
+//
+//    auto* graph = dynamic_cast<editor::QScriptedGraph*>(_workspace);
+//    if (graph != nullptr)
+//    {
+//        _default_serializer->serialize(&buffer, graph);
+//    }
+//}

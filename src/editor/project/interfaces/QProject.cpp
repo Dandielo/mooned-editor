@@ -6,6 +6,7 @@
 #include <QJsonValue>
 
 #include <QFileInfo>
+#include <QDebug>
 #include <cassert>
 
 static const char* ProjectFileExtension = ".mprj";
@@ -13,6 +14,7 @@ static const char* ProjectFileExtension = ".mprj";
 editor::QProject::QProject(QString name, QDir location)
     : QObject{ nullptr }
     , _name{ name }
+    , _filename{ name + ProjectFileExtension }
     , _location{ location }
 {
 
@@ -21,6 +23,7 @@ editor::QProject::QProject(QString name, QDir location)
 editor::QProject::QProject()
     : QObject{ nullptr }
     , _name{ "" }
+    , _filename{ "" }
     , _location{ "" }
 {
 }
@@ -41,13 +44,18 @@ bool editor::QProject::open(QFileInfo file_info)
         return false;
     }
 
+    // Set the file name and location values
+    _filename = file_info.fileName();
+    _location = file_info.absoluteDir();
+
     // Read the project data
-    QFile project_file{ file_info.canonicalFilePath() };
+    QFile project_file{ file_info.absoluteFilePath() };
+    project_file.open(QFile::Text | QFile::ReadOnly);
     QByteArray file_data = project_file.readAll();
     project_file.close();
 
     // Parse the given document
-    QJsonDocument json_project = QJsonDocument::fromBinaryData(file_data);
+    QJsonDocument json_project = QJsonDocument::fromJson(file_data);
     QJsonObject json_root = json_project.object();
     _name = json_root.value("name").toString();
     return true;
@@ -63,12 +71,13 @@ bool editor::QProject::save()
     // Create the JSon document
     QJsonObject json_root;
     json_root.insert("name", _name);
+    json_root.insert("version", "alpha");
 
     QJsonDocument json_project(json_root);
 
     // Save the file
-    QFileInfo file_info{ _location, _name + ProjectFileExtension };
-    QFile project_file{ file_info.canonicalFilePath() };
+    QFileInfo file_info{ _location, _filename };
+    QFile project_file{ file_info.absoluteFilePath() };
 
     project_file.open(QFile::Text | QFile::WriteOnly);
     project_file.write(json_project.toJson());

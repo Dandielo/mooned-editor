@@ -18,17 +18,14 @@ public:
     void initialize(Scripts::CScriptManager* script_manager);
     void shutdown();
 
-    virtual void addWorkspace(QWorkspace* workspace) override;
-    virtual QWorkspace* activeWorkspace() override;
-
 public slots:
-    virtual void onSave() override;
-    virtual void onLoad() override;
+    void createWorkspace();
+    void closeWorkspace(QString name);
 
 private:
     Scripts::CScriptManager* _script_manager;
-    QWorkspace* _workspace;
 
-private:
-    editor::QGraphSerializer* _default_serializer;
+    QWorkspace* _active_workspace;
+    QVector<QWorkspace*> _workspaces;
+    QVector<QString> _workspace_types;
 };

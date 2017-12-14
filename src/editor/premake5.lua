@@ -7,6 +7,7 @@ project "TestEditor"
         "**.cpp",
         "**.h",
         "**.ui",
+        "**.natvis",
     }
 
     includedirs {

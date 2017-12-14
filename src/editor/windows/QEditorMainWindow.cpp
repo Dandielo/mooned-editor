@@ -6,6 +6,22 @@
 
 #include <QMenuBar>
 #include <QFileDialog>
+#include <QDebug>
+
+
+static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects, QString name)
+{
+    editor::QProject* result = nullptr;
+    for (editor::QProject* prj : projects)
+    {
+        if (prj->name() == name)
+        {
+            result = prj;
+            break;
+        }
+    }
+    return result;
+}
 
 static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWindow* ui, QMenuBar* menu)
 {
@@ -26,7 +42,7 @@ static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWind
     action = ui->menuFile->addAction("&Open project");
     QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onOpenProject);
     action = ui->menuFile->addAction("&Save project");
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onSaveProject);
+    QApplication::connect(action, &QAction::triggered, editor, (void(QEditorMainWindow::*)())&QEditorMainWindow::onSaveProject);
 }
 
 QEditorMainWindow::QEditorMainWindow()
@@ -60,8 +76,13 @@ QEditorMainWindow::QEditorMainWindow()
     initializeEditorMainWindowMenu(this, &window_ui, window_ui.menuBar);
 
     // Setup other UI elements
-    _project_model = new editor::QProjectModel{};
+    _project_model = new editor::QProjectModel{ window_ui.projectsFileTree };
+    _project_model->contextMenuHelper()->initialize(this);
+
     window_ui.projectsFileTree->setModel(_project_model);
+    window_ui.projectsFileTree->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, _project_model->contextMenuHelper(), &editor::QProjectContextMenuHelper::onProjectContextMenu);
 }
 
 QEditorMainWindow::~QEditorMainWindow()
@@ -72,6 +93,7 @@ QEditorMainWindow::~QEditorMainWindow()
     }
 
     reinterpret_cast<QScriptedWorkspaceWindow*>(_workspace_window)->shutdown();
+    delete _project_model;
     delete _workspace_window;
     delete _script_manager;
 }
@@ -91,19 +113,19 @@ QString QEditorMainWindow::projectDir()
 
 void QEditorMainWindow::onSave()
 {
-    _workspace_window->onSave();
+    //_workspace_window->onSave();
 }
 
 void QEditorMainWindow::onLoad()
 {
-    _workspace_window->onLoad();
+    //_workspace_window->onLoad();
 }
 
 void QEditorMainWindow::onNewProject()
 {
-    auto project = new editor::QProject{ "Test", projectDir() };
-    _projects.append(_projects);
-    _project_model->addProject(project);
+    _active_project = new editor::QProject{ "Test", projectDir() };
+    _projects.append(_active_project);
+    _project_model->addProject(_active_project);
 }
 
 void QEditorMainWindow::onOpenProject()
@@ -117,8 +139,9 @@ void QEditorMainWindow::onOpenProject()
     if (project->isValid())
     {
         // Add the project (if valid)
-        _projects.append(_projects);
-        _project_model->addProject(project);
+        _active_project = project;
+        _projects.append(_active_project);
+        _project_model->addProject(_active_project);
     }
     else
     {
@@ -128,5 +151,42 @@ void QEditorMainWindow::onOpenProject()
 
 void QEditorMainWindow::onSaveProject()
 {
+    if (_active_project != nullptr)
+    {
+        onSaveProject(_active_project->name());
+    }
+}
+
+void QEditorMainWindow::onSaveProject(QString name)
+{
+    auto* project = findProjectByName(_projects, name);
+    if (project != nullptr)
+    {
+        project->save();
+    }
+}
+
+void QEditorMainWindow::onCloseProject(QString name)
+{
+    auto* project = findProjectByName(_projects, name);
+    if (project != nullptr)
+    {
+        _projects.removeAt(_projects.indexOf(project));
+        _project_model->removeProject(project);
+
+        if (project == _active_project)
+        {
+            if (_projects.isEmpty())
+            {
+                _active_project = nullptr;
+            }
+            else
+            {
+                _active_project = _projects.last();
+            }
+        }
+
+        delete project;
+    }
 }
 

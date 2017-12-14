@@ -24,9 +24,11 @@ static bool contains(QVector<editor::QProjectTree*>& projects, editor::QProject*
     return find(projects, to_find) != nullptr;
 }
 
-editor::QProjectModel::QProjectModel(QObject* parent /* = nullptr */)
+editor::QProjectModel::QProjectModel(QTreeView* tree_view, QObject* parent /* = nullptr */)
     : QAbstractItemModel{ parent }
-    , _projects{ }
+    , _sections{}
+    , _projects{}
+    , _context_menu_helper{ tree_view, this }
 {
     _sections << "Name";
 }

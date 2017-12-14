@@ -28,11 +28,16 @@ public slots:
     void onOpenProject();
     void onSaveProject();
 
+    void onSaveProject(QString name);
+    void onCloseProject(QString name);
+
 private:
     QWorkspaceWindow* _workspace_window;
     CScriptManager* _script_manager;
 
 private:
     editor::QProjectModel* _project_model;
+
+    editor::QProject* _active_project;
     QVector<editor::QProject*> _projects;
 };

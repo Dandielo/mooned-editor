@@ -25,6 +25,7 @@ namespace editor
 
     protected:
         QString _name;
+        QString _filename;
         QDir _location;
     };
 }

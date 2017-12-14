@@ -1,6 +1,7 @@
 #pragma once
 #include <QVector>
 #include <QAbstractItemModel>
+#include "QProjectContextMenuHelper.h"
 
 namespace editor
 {
@@ -12,7 +13,7 @@ namespace editor
         Q_OBJECT;
 
     public:
-        QProjectModel(QObject* parent = nullptr);
+        QProjectModel(QTreeView* tree_view, QObject* parent = nullptr);
         virtual ~QProjectModel() override;
 
         void addProject(QProject* project);
@@ -27,8 +28,12 @@ namespace editor
         virtual QVariant data(const QModelIndex &index, int role) const override;
         virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
+        QProjectContextMenuHelper* contextMenuHelper() { return &_context_menu_helper; }
+
     private:
         QVector<QString> _sections;
         QVector<QProjectTree*> _projects;
+
+        QProjectContextMenuHelper _context_menu_helper;
     };
 }
