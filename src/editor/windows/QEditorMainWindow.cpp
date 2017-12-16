@@ -133,12 +133,12 @@ void QEditorMainWindow::onLoad()
 
 void QEditorMainWindow::onNewProject()
 {
-    auto* project = new editor::QScriptedProject{ "Test", projectDir() };
-    project->initialize(_script_manager);
-    project->initialize(this);
+    //auto* project = new editor::QScriptedProject{ "Test", projectDir() };
+    //project->initialize(_script_manager);
+    //project->initialize(this);
 
-    _active_project = project;
-    _projects.append(_active_project);;
+    //_active_project = project;
+    //_projects.append(_active_project);;
 }
 
 void QEditorMainWindow::onOpenProject()

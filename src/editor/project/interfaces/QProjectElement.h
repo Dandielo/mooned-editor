@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QFileInfo>
 
 namespace editor
 {
@@ -15,7 +16,10 @@ namespace editor
         virtual QString name() const = 0;
         virtual QString displayText() const;
 
-    private:
+        virtual void save();
+        virtual void load();
+
+    protected:
         QProject* _project; //#todo is it needed?
     };
 }

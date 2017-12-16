@@ -123,3 +123,13 @@ QString editor::QProject::name() const
 {
     return _name;
 }
+
+QString editor::QProject::filename() const
+{
+    return _filename;
+}
+
+QDir editor::QProject::location() const
+{
+    return _location;
+}

@@ -1,5 +1,4 @@
 #include "QScriptedProject.h"
-#include "QScriptedElementGraph.h"
 
 #include "windows/QEditorMainWindow.h"
 #include "windows/QWorkspaceWindow.h"
@@ -7,6 +6,7 @@
 #include "project/models/QProjectModel.h"
 #include "project/scripted/nodes/QScriptedProjectTree.h"
 #include "project/scripted/nodes/QScriptedGraphNode.h"
+#include "project/scripted/elements/QScriptedElementGraph.h"
 
 #include <cassert>
 
@@ -102,6 +102,10 @@ void editor::QScriptedProject::newGraph(QString classname, QString name)
 
 void editor::QScriptedProject::onSave(QJsonObject& root)
 {
+    for (auto* element : _elements)
+    {
+        element->save();
+    }
 }
 
 void editor::QScriptedProject::onLoad(const QJsonObject& root)

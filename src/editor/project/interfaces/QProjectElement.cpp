@@ -18,3 +18,13 @@ QString editor::QProjectElement::displayText() const
 {
     return name();
 }
+
+void editor::QProjectElement::save()
+{
+    /* do nothing */
+}
+
+void editor::QProjectElement::load()
+{
+    /* do nothing */
+}

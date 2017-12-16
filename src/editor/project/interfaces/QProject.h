@@ -24,6 +24,8 @@ namespace editor
         virtual void initialize(QEditorMainWindow* mw) = 0;
 
         QString name() const;
+        QString filename() const;
+        QDir location() const;
 
         bool isValid() const;
 

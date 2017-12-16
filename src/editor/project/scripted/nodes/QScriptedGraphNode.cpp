@@ -1,5 +1,5 @@
 #include "QScriptedGraphNode.h"
-#include "project/scripted/QScriptedElementGraph.h"
+#include "project/scripted/elements/QScriptedElementGraph.h"
 
 editor::QScriptedGraphNode::QScriptedGraphNode(QScriptedElementGraph* graph, QProjectTreeNode* parent /*= nullptr*/)
     : QProjectTreeNode{ parent }
