@@ -1,5 +1,5 @@
 #pragma once
-#include "graph/basic/QBasicGraphSerializer.h"
+#include "graph/scripted/QScriptedGraphSerializer.h"
 #include "project/interfaces/QProjectElement.h"
 #include "scripts/CScriptManager.h"
 
@@ -18,6 +18,11 @@ namespace editor
         void initialize(Scripts::CScriptManager* script_manager);
         void shutdown();
 
+        bool initialized() const { nullptr != _script_manager && nullptr != _graph; }
+
+        QString graphName() const { return _name; }
+        QString className() const { return _classname; }
+
         virtual QString name() const override;
         virtual QString displayText() const override;
 
@@ -30,11 +35,8 @@ namespace editor
     protected:
         QString fileLocation() const;
 
-        void onSave(QJsonObject& root);
-        void onLoad(const QJsonObject& root);
-
     private:
-        editor::QBasicGraphSerializer _graph_serializer;
+        editor::QScriptedGraphSerializer _graph_serializer;
         Scripts::CScriptManager* _script_manager;
         editor::QScriptedGraph* _graph;
 

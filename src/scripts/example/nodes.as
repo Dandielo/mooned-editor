@@ -19,17 +19,17 @@ class TutorialNodeIn : CNode
 
     void Update()
     {
-        if (_once)
-        {
-            INode@ n = _graph.createNode("TutorialNodeOut");
-            n.move(4700, 4900); // move to center
-            _once = false;
-        }
-        else
-        {
-            int num = In;
-            name = "My number is: " + num;
-        }
+        // if (_once)
+        // {
+        //     INode@ n = _graph.createNode("TutorialNodeOut");
+        //     n.move(4700, 4900); // move to center
+        //     _once = false;
+        // }
+        // else
+        // {
+        //     int num = In;
+        //     name = "My number is: " + num;
+        // }
     }
 
     void setGraph(IGraph@ graph)

@@ -27,6 +27,8 @@ editor::QScriptedElementGraph::~QScriptedElementGraph()
 void editor::QScriptedElementGraph::initialize(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
+    _graph_serializer.initialize(script_manager);
+
     _graph = _script_manager->CreateObject<editor::QScriptedGraph, 1>(_classname.toLocal8Bit().data());
     _graph->initialize(_script_manager);
     _graph->setWindowTitle(_name);
@@ -34,8 +36,11 @@ void editor::QScriptedElementGraph::initialize(Scripts::CScriptManager* script_m
 
 void editor::QScriptedElementGraph::shutdown()
 {
-    _graph->shutdown();
-    delete _graph;
+    if (nullptr != _graph)
+    {
+        _graph->shutdown();
+        delete _graph;
+    }
 }
 
 QString editor::QScriptedElementGraph::name() const
@@ -58,6 +63,7 @@ void editor::QScriptedElementGraph::save()
     if (file.isOpen())
     {
         _graph_serializer.serialize(&file, _graph);
+        file.close();
     }
 }
 
@@ -69,6 +75,7 @@ void editor::QScriptedElementGraph::load()
     if (file.isOpen())
     {
         _graph_serializer.deserialize(&file, _graph);
+        file.close();
     }
 }
 

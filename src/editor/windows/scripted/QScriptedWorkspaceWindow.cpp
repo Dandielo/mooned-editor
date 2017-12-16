@@ -84,10 +84,13 @@ void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)
 {
     assert(nullptr != workspace);
 
-    _workspaces.append(_workspaces);
+    if (!_workspaces.contains(workspace))
+    {
+        _workspaces.append(_workspaces);
 
-    addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, workspace);
-    setActiveWorkspace(workspace);
+        addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, workspace);
+        setActiveWorkspace(workspace);
+    }
 }
 
 void QScriptedWorkspaceWindow::closeWorkspace(QString name)

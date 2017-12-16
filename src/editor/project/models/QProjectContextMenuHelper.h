@@ -25,11 +25,13 @@ namespace editor
         void closeProject(QString name);
 
     public slots:
-        void onProjectContextMenu(const QPoint& pos);
-        void onContextMenuAction();
+        void onCustomContextMenuAction(const QPoint& pos);
+        void onProjectMenuAction();
+        void onNodeMenuAction();
 
     private:
         QTreeView* _tree_view;
-        QMenu* _menu;
+        QMenu* _project_menu;
+        QMenu* _node_menu;
     };
 }

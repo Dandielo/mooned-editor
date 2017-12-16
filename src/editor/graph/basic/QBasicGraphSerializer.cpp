@@ -10,8 +10,6 @@
 #include <QJsonArray>
 #include <QJsonValue>
 
-#include <QMap>
-#include <QVector>
 #include <cassert>
 
 editor::QBasicGraphSerializer::QBasicGraphSerializer()

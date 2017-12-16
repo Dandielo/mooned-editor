@@ -27,6 +27,10 @@ namespace editor
 
         virtual void newGraph(QString classname, QString name) override;
 
+        virtual void openElement(QString name) override;
+        virtual void saveElement(QString name) override;
+        virtual void deleteElement(QString name) override;
+
     signals:
         void projectTreeChanged(QProjectTree* tree);
         void graphOpened(editor::QScriptedGraph* graph);
@@ -34,6 +38,9 @@ namespace editor
     protected:
         virtual void onSave(QJsonObject& root) override;
         virtual void onLoad(const QJsonObject& root) override;
+
+        // Loading helpers
+        void addGraph(QString classname, QString name);
 
     private:
         Scripts::CScriptManager* _script_manager;

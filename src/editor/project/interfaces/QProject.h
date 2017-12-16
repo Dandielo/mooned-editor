@@ -37,6 +37,10 @@ namespace editor
         void addElement(QProjectElement* element);
         void removeElement(QProjectElement* element);
 
+        virtual void openElement(QString name) = 0;
+        virtual void saveElement(QString name) = 0;
+        virtual void deleteElement(QString name) = 0;
+
     public slots:
         virtual void newGraph(QString classname, QString name) = 0;
 

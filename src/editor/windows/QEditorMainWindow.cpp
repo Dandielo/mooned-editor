@@ -92,7 +92,7 @@ QEditorMainWindow::QEditorMainWindow()
     window_ui.projectsFileTree->setModel(_project_model);
     window_ui.projectsFileTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, _project_model->contextMenuHelper(), &editor::QProjectContextMenuHelper::onProjectContextMenu);
+    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, _project_model->contextMenuHelper(), &editor::QProjectContextMenuHelper::onCustomContextMenuAction);
 }
 
 QEditorMainWindow::~QEditorMainWindow()
