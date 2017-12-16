@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>NewFile</class>
- <widget class="QDialog" name="NewFile">
+ <class>DialogWithValue</class>
+ <widget class="QDialog" name="dialogWithValue">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -15,9 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="value">
      <item>
-      <widget class="QLabel" name="fileNameLabel">
+      <widget class="QLabel" name="labelValue">
        <property name="minimumSize">
         <size>
          <width>70</width>
@@ -33,21 +33,21 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="fileName"/>
+      <widget class="QLineEdit" name="editValue"/>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <layout class="QHBoxLayout" name="buttons">
      <item>
-      <widget class="QPushButton" name="cancelButton">
+      <widget class="QPushButton" name="buttonCancel">
        <property name="text">
         <string>Cancel</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="createButton">
+      <widget class="QPushButton" name="buttonCreate">
        <property name="text">
         <string>Create</string>
        </property>

@@ -1,5 +1,7 @@
 #include "QProjectTreeNode.h"
 
+#include <cassert>
+
 editor::QProjectTreeNode::QProjectTreeNode(QProjectTreeNode* parent /*= nullptr*/)
     : _parent{ parent }
     , _childs{ }
@@ -41,4 +43,16 @@ editor::QProjectTreeNode* editor::QProjectTreeNode::parent() const
 editor::QProjectTreeNode* editor::QProjectTreeNode::child(uint index) const
 {
     return _childs.at(index);
+}
+
+void editor::QProjectTreeNode::add(QProjectTreeNode* node)
+{
+    assert(!_childs.contains(node));
+    _childs.append(node);
+}
+
+void editor::QProjectTreeNode::remove(QProjectTreeNode* node)
+{
+    assert(_childs.contains(node));
+    _childs.remove(_childs.indexOf(node));
 }

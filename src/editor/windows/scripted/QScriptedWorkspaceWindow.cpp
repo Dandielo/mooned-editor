@@ -10,13 +10,13 @@
 
 static void releaseWorkspace(QWorkspace* workspace)
 {
-    auto* graph = dynamic_cast<editor::QScriptedGraph*>(workspace);
-    if (graph != nullptr)
-    {
-        graph->shutdown();
-    }
+    //auto* graph = dynamic_cast<editor::QScriptedGraph*>(workspace);
+    //if (graph != nullptr)
+    //{
+    //    graph->shutdown();
+    //}
 
-    delete workspace;
+    //delete workspace;
 }
 
 static QWorkspace* findWorkspaceByName(QVector<QWorkspace*>& workspaces, QString name)
@@ -76,8 +76,18 @@ void QScriptedWorkspaceWindow::shutdown()
 
     for (auto* workspace : _workspaces)
     {
-        releaseWorkspace(workspace);
+        releaseWorkspace(workspace);//#todo does nothing atm
     }
+}
+
+void QScriptedWorkspaceWindow::addWorkspace(QWorkspace* workspace)
+{
+    assert(nullptr != workspace);
+
+    _workspaces.append(_workspaces);
+
+    addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, workspace);
+    setActiveWorkspace(workspace);
 }
 
 void QScriptedWorkspaceWindow::closeWorkspace(QString name)
@@ -89,15 +99,24 @@ void QScriptedWorkspaceWindow::closeWorkspace(QString name)
 
         if (_active_workspace == workspace && !_workspaces.isEmpty())
         {
-            _active_workspace = _workspaces.last();
-            _active_workspace->setFocus();
+            setActiveWorkspace(_workspaces.last());
         }
         else if(_active_workspace == workspace)
         {
-            _active_workspace = nullptr;
+            setActiveWorkspace(nullptr);
         }
 
-        releaseWorkspace(workspace);
+        releaseWorkspace(workspace); // #todo does nothing atm
+    }
+}
+
+void QScriptedWorkspaceWindow::setActiveWorkspace(QWorkspace* workspace)
+{
+    _active_workspace = workspace;
+    if (nullptr != _active_workspace)
+    {
+        _active_workspace->setFocus();
+        _active_workspace->show();
     }
 }
 

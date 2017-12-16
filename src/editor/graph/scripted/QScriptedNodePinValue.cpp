@@ -48,8 +48,11 @@ public:
     {
         _value = qvariant_cast<T>(val);
 
-        // Send and update event to the parent node object
-        QCoreApplication::postEvent(_property->nodePin()->parent(), new editor::QScriptedNodeEvent{});
+        if (_property->nodePin()->pinType() == editor::PinType::Input)
+        {
+            // Send and update event to the parent node object
+            QCoreApplication::postEvent(_property->nodePin()->parent(), new editor::QScriptedNodeEvent{});
+        }
     }
 
     virtual void beginEdit() override

@@ -6,7 +6,7 @@ namespace editor
     class QProjectTreeNode
     {
     public:
-        QProjectTreeNode(QProjectTreeNode* parent = nullptr);
+        QProjectTreeNode(QProjectTreeNode* parent);
         virtual ~QProjectTreeNode();
 
         uint index() const;
@@ -14,6 +14,9 @@ namespace editor
 
         QProjectTreeNode* parent() const;
         QProjectTreeNode* child(uint index) const;
+
+        void add(QProjectTreeNode* node);
+        void remove(QProjectTreeNode* node);
 
         virtual QString toString() const;
 

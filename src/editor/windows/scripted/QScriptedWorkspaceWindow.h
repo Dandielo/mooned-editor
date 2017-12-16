@@ -18,9 +18,14 @@ public:
     void initialize(Scripts::CScriptManager* script_manager);
     void shutdown();
 
+    virtual void addWorkspace(QWorkspace* workspace) override;
+
 public slots:
     void createWorkspace();
     void closeWorkspace(QString name);
+
+protected:
+    void setActiveWorkspace(QWorkspace* workspace);
 
 private:
     Scripts::CScriptManager* _script_manager;

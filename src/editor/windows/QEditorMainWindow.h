@@ -31,6 +31,10 @@ public slots:
     void onSaveProject(QString name);
     void onCloseProject(QString name);
 
+
+    QWorkspaceWindow* workspaceWindow() const { return _workspace_window; }
+    editor::QProjectModel* projectModel() const { return _project_model; }
+
 private:
     QWorkspaceWindow* _workspace_window;
     CScriptManager* _script_manager;

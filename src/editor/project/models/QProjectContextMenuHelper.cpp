@@ -2,6 +2,9 @@
 #include "QProjectTreeNode.h"
 #include "QProjectTree.h"
 
+#include "project/interfaces/QProject.h"
+#include "project/dialogs/QDialogNewProjectGraph.h"
+
 #include "windows/QEditorMainWindow.h"
 
 #include <QModelIndex>
@@ -66,6 +69,8 @@ void editor::QProjectContextMenuHelper::onProjectContextMenu(const QPoint& pos)
 void editor::QProjectContextMenuHelper::onContextMenuAction()
 {
     auto* node = qvariant_cast<QProjectTreeNode*>(_menu->property("node"));
+    auto* tree = dynamic_cast<QProjectTree*>(node);
+
     auto action_name = sender()->objectName();
 
     auto emit_if_action = [&](QString name, auto fn) {
@@ -75,10 +80,22 @@ void editor::QProjectContextMenuHelper::onContextMenuAction()
         }
     };
 
-    emit_if_action("project.close", [&](QString node_name) {
-        emit closeProject(node_name);
-    });
-    emit_if_action("project.save", [&](QString node_name) {
-        emit saveProject(node_name);
-    });
+    if (tree)
+    {
+        emit_if_action("project.close", [&](QString node_name) {
+            emit closeProject(node_name);
+        });
+        emit_if_action("project.save", [&](QString node_name) {
+            emit saveProject(node_name);
+        });
+        emit_if_action("project.new graph", [&](QString node_name) {
+            auto* project = tree->project();
+            auto* dialog = new QDialogNewProjectGraph{ project };
+
+            connect(dialog, &QDialogNewProjectGraph::finished, [&, project](const QString& name) {
+                project->newGraph("BasicGraph", name);
+            });
+            dialog->show();
+        });
+    }
 }

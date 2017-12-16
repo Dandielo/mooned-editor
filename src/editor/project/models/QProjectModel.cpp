@@ -37,21 +37,21 @@ editor::QProjectModel::~QProjectModel()
 {
 }
 
-void editor::QProjectModel::addProject(QProject* project)
+void editor::QProjectModel::addProject(QProjectTree* project)
 {
-    if (!contains(_projects, project))
+    if (!_projects.contains(project))
     {
-        _projects.append(new editor::QProjectTree{ project });
+        _projects.append(project);
     }
 
     layoutChanged();
 }
 
-void editor::QProjectModel::removeProject(QProject* project)
+void editor::QProjectModel::removeProject(QProjectTree* project)
 {
-    if (contains(_projects, project))
+    if (_projects.contains(project))
     {
-        _projects.remove(_projects.indexOf(find(_projects, project)));
+        _projects.remove(_projects.indexOf(project));
     }
 
     layoutChanged();
@@ -147,4 +147,9 @@ QVariant editor::QProjectModel::headerData(int section, Qt::Orientation orientat
         return _sections.at(section);
 
     return { };
+}
+
+void editor::QProjectModel::projectTreeChanged(QProjectTree*)
+{
+    layoutChanged();
 }

@@ -5,6 +5,7 @@
 
 namespace editor
 {
+    class QGraph;
     class QProject;
     class QProjectTree;
 
@@ -16,8 +17,8 @@ namespace editor
         QProjectModel(QTreeView* tree_view, QObject* parent = nullptr);
         virtual ~QProjectModel() override;
 
-        void addProject(QProject* project);
-        void removeProject(QProject* project);
+        void addProject(QProjectTree* project);
+        void removeProject(QProjectTree* project);
 
         virtual int rowCount(const QModelIndex &parent) const override;
         virtual int columnCount(const QModelIndex &parent) const override;
@@ -29,6 +30,9 @@ namespace editor
         virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
         QProjectContextMenuHelper* contextMenuHelper() { return &_context_menu_helper; }
+
+    public slots:
+        void projectTreeChanged(QProjectTree* tree);
 
     private:
         QVector<QString> _sections;

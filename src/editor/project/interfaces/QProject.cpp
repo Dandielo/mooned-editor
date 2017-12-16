@@ -1,4 +1,6 @@
 #include "QProject.h"
+#include "QProjectElement.h"
+#include "windows/QEditorMainWindow.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -16,8 +18,8 @@ editor::QProject::QProject(QString name, QDir location)
     , _name{ name }
     , _filename{ name + ProjectFileExtension }
     , _location{ location }
+    , _elements{ }
 {
-
 }
 
 editor::QProject::QProject()
@@ -25,11 +27,17 @@ editor::QProject::QProject()
     , _name{ "" }
     , _filename{ "" }
     , _location{ "" }
+    , _elements{}
 {
 }
 
 editor::QProject::~QProject()
 {
+    for (auto* element : _elements)
+    {
+        delete element;
+    }
+    _elements.clear();
 }
 
 bool editor::QProject::isValid() const
@@ -57,6 +65,8 @@ bool editor::QProject::open(QFileInfo file_info)
     // Parse the given document
     QJsonDocument json_project = QJsonDocument::fromJson(file_data);
     QJsonObject json_root = json_project.object();
+    onLoad(json_root);
+
     _name = json_root.value("name").toString();
     return true;
 }
@@ -70,6 +80,8 @@ bool editor::QProject::save()
 
     // Create the JSon document
     QJsonObject json_root;
+    onSave(json_root);
+
     json_root.insert("name", _name);
     json_root.insert("version", "alpha");
 
@@ -83,6 +95,28 @@ bool editor::QProject::save()
     project_file.write(json_project.toJson());
     project_file.close();
     return true;
+}
+
+bool editor::QProject::hasElement(QString name) const
+{
+    return _elements.count(name) > 0;
+}
+
+bool editor::QProject::hasElement(QProjectElement* element)
+{
+    return hasElement(element->name());
+}
+
+void editor::QProject::addElement(QProjectElement* element)
+{
+    assert(!hasElement(element));
+    _elements.insert(element->name(), element);
+}
+
+void editor::QProject::removeElement(QProjectElement* element)
+{
+    assert(hasElement(element));
+    _elements.remove(element->name());
 }
 
 QString editor::QProject::name() const
