@@ -14,11 +14,13 @@ project "TestEditor"
         ".", 
         "../contrib/angelscript/include",
         "../contrib/angelscript/add_on/scriptbuilder",
-        "../contrib/angelscript/add_on/scriptstring",
+        "../contrib/angelscript/add_on/scriptstdstring",
+        "../contrib/angelscript/add_on/scriptarray",
     }
 
     links { 
         "AngelScript",
+        "AsScriptArray",
         "AsScriptBuilder",
         "AsScriptStdString",
     }

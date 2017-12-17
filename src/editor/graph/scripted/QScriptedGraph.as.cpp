@@ -36,6 +36,8 @@ void editor::QScriptedGraph::registerTypeInterface(asIScriptEngine* engine)
 
     // API
     engine->RegisterInterface("IGraph");
+    engine->RegisterInterfaceMethod("IGraph", "array<string> NodeQueries()");
+
     engine->RegisterInterfaceMethod("IGraph", "string get_name()");
     engine->RegisterInterfaceMethod("IGraph", "string get_title()");
     engine->RegisterInterfaceMethod("IGraph", "void set_title(string)");

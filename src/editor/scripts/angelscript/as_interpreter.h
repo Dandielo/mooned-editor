@@ -22,11 +22,11 @@ namespace Scripts
 			AsScriptModule::ptr GetDefaultModule();
 
 			asIScriptObject* CreateScriptObject(const std::string& name);
-				
+
 			// User data
 			void* GetUserdata(size_t size) const;
 
-			// Script handling 
+			// Script handling
 			void AddScript(const std::string& path);
 			void RebuildScripts();
 

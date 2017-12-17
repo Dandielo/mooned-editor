@@ -1,6 +1,6 @@
 #include "QScriptedGraph.h"
-#include "graph/basic/QBasicGraphView.h"
 #include "graph/basic/QBasicGraphScene.h"
+#include "graph/scripted/QScriptedGraphView.h"
 #include "graph/scripted/QScriptedNode.h"
 
 #include "scripts/CScriptManager.h"
@@ -9,13 +9,16 @@
 #include <QGridLayout>
 #include <QGLWidget>
 
+#include <QDebug>
+
 editor::QScriptedGraph::QScriptedGraph(asIScriptObject* obj)
-    : QGraph(), CNativeScriptObject(obj)
-    , _script_manager(nullptr)
-    , _type(nullptr)
-    , _scene(nullptr)
-    , _view(nullptr)
-    , _nodes()
+    : QGraph{ }
+    , CNativeScriptObject{ obj }
+    , _script_manager{ nullptr }
+    , _type{ nullptr }
+    , _scene{ nullptr }
+    , _view{ nullptr }
+    , _nodes{ }
 {
     _type = obj->GetObjectType();
 
@@ -23,7 +26,7 @@ editor::QScriptedGraph::QScriptedGraph(asIScriptObject* obj)
     _scene->setParent(this);
 
     // View settings
-    _view = new QBasicGraphView;
+    _view = new QScriptedGraphView{};
     _view->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
     _view->setViewport(new QOpenGLWidget());
     _view->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
@@ -50,16 +53,20 @@ editor::QScriptedGraph::~QScriptedGraph()
 void editor::QScriptedGraph::initialize(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
+    _view->initialzie(script_manager, this);
 
     // Sets the default title
     setWindowTitle(QString::fromStdString(_script_manager->GetTypeAttr(_type, "name")));
 
+    // Finish the initialization process
     CallScriptMethod("OnCreate");
 }
 
 void editor::QScriptedGraph::shutdown()
 {
     CallScriptMethod("OnDestroy");
+
+    _view->shutdown();
 
     for (auto* node : nodes())
     {
@@ -75,6 +82,11 @@ void editor::QScriptedGraph::shutdown()
 QString editor::QScriptedGraph::name() const
 {
     return _type->GetName();
+}
+
+editor::QGraphView* editor::QScriptedGraph::view() const
+{
+    return _view;
 }
 
 void editor::QScriptedGraph::addNode(QNode* node)
@@ -111,7 +123,7 @@ QVector<editor::QNode*> editor::QScriptedGraph::nodes() const
 
 editor::QScriptedNode* editor::QScriptedGraph::newScriptNode(QString nodeclass)
 {
-    auto* node = _script_manager->CreateObject<editor::QScriptedNode, 1>(nodeclass.toLocal8Bit().data());
+    auto* node = _script_manager->CreateObject<editor::QScriptedNode, 1>(nodeclass.toLocal8Bit().data(), false);
     if (node != nullptr)
     {
         node->initialize(_script_manager);

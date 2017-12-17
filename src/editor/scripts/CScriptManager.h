@@ -3,6 +3,7 @@
 #include "angelscript/as_interpreter.h"
 
 #include "CScriptDatabase.h"
+#include <cassert>
 
 namespace Scripts
 {
@@ -44,10 +45,17 @@ namespace Scripts
 		std::vector<asITypeInfo*> QueryTypes(std::string query) const;
 
         template<class T, int FlagValue = 0>
-        T* CreateObject(const std::string& name) const
+        T* CreateObject(const std::string& name, bool check = true) const
         {
             asIScriptEngine* engine = *_interpreter;
             auto typeinfo = _interpreter->GetDefaultModule()->GetTypeInfoByName(name.c_str());
+
+            if (nullptr == typeinfo)
+            {
+                assert(nullptr == typeinfo && !check);
+                return nullptr;
+            }
+
             auto cstr = typeinfo->GetFactoryByIndex(0);
             T* native_obj = nullptr;
 

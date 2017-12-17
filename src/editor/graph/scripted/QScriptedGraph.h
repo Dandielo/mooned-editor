@@ -9,6 +9,7 @@ using Scripts::CNativeScriptObject;
 namespace editor
 {
     class QScriptedNode;
+    class QScriptedGraphView;
 
     class QScriptedGraph : public QGraph, public CNativeScriptObject<QScriptedGraph>
     {
@@ -23,7 +24,7 @@ namespace editor
         void shutdown();
 
         virtual QString name() const override;
-        virtual QGraphView* view() const override { return _view; }
+        virtual QGraphView* view() const override;
         virtual QGraphScene* scene() const override { return _scene; }
 
         virtual void addNode(QNode* node) override;
@@ -38,8 +39,11 @@ namespace editor
         asITypeInfo* _type;
 
         QGraphScene* _scene;
-        QGraphView* _view;
+        QScriptedGraphView* _view;
 
         QVector<QNode*> _nodes;
+
+    private:
+        friend class QScriptedGraphView;
     };
 }

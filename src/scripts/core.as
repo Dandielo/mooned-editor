@@ -59,6 +59,9 @@ abstract class CGraph : IGraph
     void OnNodeAdded(INode@ node) { }
     void OnNodeRemoved(INode@ node) { }
 
+    // Supported graph nodes
+    array<string> NodeQueries() { return array<string>(); }
+
     // Forwards
     INode@ createNode(string type_name) 
     { 

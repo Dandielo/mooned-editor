@@ -1,5 +1,8 @@
 #include "as_interpreter.h"
 
+#include <scriptarray.h>
+#include <scriptstdstring.h>
+
 #include <QDebug>
 
 using namespace ::Scripts::AngelScript;
@@ -64,8 +67,8 @@ AsInterpreter::AsInterpreter() : m_Engine(nullptr), m_ContextPool(nullptr) {
 	m_Engine->SetTypeInfoUserDataCleanupCallback(TypeInfoCleanupCallback);
 
 	// Register the string type
-	extern void RegisterStdString(asIScriptEngine *engine);
 	RegisterStdString(m_Engine);
+    RegisterScriptArray(m_Engine, true);
 
 	// Register a basic print function
 	m_Engine->RegisterGlobalFunction("void print(string& in)", asFUNCTION(PrintCallback), asCALL_CDECL);

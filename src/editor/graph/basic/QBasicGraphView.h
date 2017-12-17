@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "graph/interfaces/QGraphView.h"
 
 namespace editor

@@ -16,6 +16,7 @@
 #include <QJsonValue>
 #include <QMap>
 
+#include <QDebug>
 #include <cassert>
 
 editor::QScriptedGraphSerializer::QScriptedGraphSerializer()
@@ -135,6 +136,12 @@ bool editor::QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_
 
         // Create the nodes
         auto* node = graph->newScriptNode(json_node.value("class").toString());
+        if (nullptr == node)
+        {
+            qDebug() << QString("Could not find script class: %1. Skipping node serialization: %2.").arg(json_node.value("class").toString()).arg(json_node.value("name").toString());
+            continue;
+        }
+
         node->setName(json_node.value("name").toString());
         node->setDesc(json_node.value("desc").toString());
         node->setPos(json_metadata.value("pos_x").toDouble(), json_metadata.value("pos_y").toDouble());
