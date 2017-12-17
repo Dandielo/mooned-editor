@@ -83,7 +83,7 @@ bool editor::QBasicGraphSerializer::serialize(QIODevice* io, QGraph* graph)
 
         QJsonObject editor_metadata;
         editor_metadata.insert("pos_x", node->pos().x());
-        editor_metadata.insert("pos_y", node->pos().x());
+        editor_metadata.insert("pos_y", node->pos().y());
 
         json_node.insert("editor_metadata", editor_metadata);
         json_node_array.append(json_node);
