@@ -41,20 +41,26 @@ void editor::QProjectModel::addProject(QProjectTree* project)
 {
     if (!_projects.contains(project))
     {
-        _projects.append(project);
-    }
+        beginInsertRows({}, _projects.size(), _projects.size());
 
-    layoutChanged();
+        _projects.append(project);
+
+        endInsertRows();
+    }
 }
 
 void editor::QProjectModel::removeProject(QProjectTree* project)
 {
     if (_projects.contains(project))
     {
-        _projects.remove(_projects.indexOf(project));
-    }
+        uint index = _projects.indexOf(project);
 
-    layoutChanged();
+        beginRemoveRows({}, index, index);
+
+        _projects.remove(index);
+
+        endRemoveRows();
+    }
 }
 
 int editor::QProjectModel::rowCount(const QModelIndex &parent /*= QModelIndex()*/) const
