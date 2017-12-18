@@ -1,5 +1,7 @@
 #pragma once
 #include "graph/basic/QBasicGraphView.h"
+#include "graph/scripted/helpers/QScriptedGraphContextMenuHelper.h"
+
 #include "scripts/CScriptManager.h"
 
 namespace editor
@@ -20,9 +22,9 @@ namespace editor
         virtual void contextMenuEvent(QContextMenuEvent* ev) override;
 
     private:
+        QScriptedGraphContextMenuHelper _menu_helper;
+
         Scripts::CScriptManager* _script_manager;
         QScriptedGraph* _graph;
-
-        QVector<asITypeInfo*> _node_types;
     };
 }

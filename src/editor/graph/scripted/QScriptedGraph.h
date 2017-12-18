@@ -44,6 +44,6 @@ namespace editor
         QVector<QNode*> _nodes;
 
     private:
-        friend class QScriptedGraphView;
+        friend class QScriptedGraphContextMenuHelper;
     };
 }
