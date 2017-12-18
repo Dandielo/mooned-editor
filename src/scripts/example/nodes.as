@@ -1,41 +1,44 @@
 
-[node, desc:node.tutorial, name:Start Node]
-class TutorialNodeStart : CNode 
+
+class TutorialNode : CNode 
 {
-    void OnCreate()
-    {
-        color(0.0, 0.8, 0.3); 
+    void OnCreate() 
+    { 
+        color(1.0, 0.0, 0.0); 
     }
 }
 
-[node, desc:node.tutorial, name:Calc Node]
-class TutorialNodeCalculate : CNode 
+[node, desc:node.tutorial, name:Start Node]
+class TutorialNodeStart : TutorialNode 
 {
-    void OnCreate()
+    [type: out]
+    prop<int> Out;
+}
+
+[node, desc:node.tutorial, name:Calc Node]
+class TutorialNodeCalculate : TutorialNode 
+{
+    [type: in]
+    prop<int> One;
+
+    [type: in]
+    prop<int> Two;
+
+    [type: out, noedit]
+    prop<int> Out;
+
+    void Update()
     {
-        color(0.0, 0.3, 0.8); 
+        int one = One;
+        int two = Two;
+
+        Out = one + two;
     }
 }
 
 [node, desc:node.tutorial, name:End Node]
-class TutorialNodeEnd : CNode 
+class TutorialNodeEnd : TutorialNode 
 {
-    void OnCreate() 
-    { 
-        color(1.0, 0.0, 0.0); 
-    }
-}
-
-
-class TutorialNode : CNode 
-{
-}
-
-[node, desc:node.tutorial, name:My Tutorial Node]
-class MyTutorialNode : TutorialNode 
-{
-    void OnCreate() 
-    { 
-        color(1.0, 0.0, 0.0); 
-    }
+    [type: in]
+    prop<int> In;
 }

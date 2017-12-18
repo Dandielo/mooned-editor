@@ -291,7 +291,10 @@ bool editor::QScriptedNode::event(QEvent* event)
             {
                 for (QNodeConnection* conn : out_pin->connections())
                 {
-                    QCoreApplication::postEvent(conn->inputPin()->parent(), new QScriptedNodeEvent{});
+                    if (static_cast<QScriptedNode*>(conn->inputPin()->parent()) != this)
+                    {
+                        QCoreApplication::postEvent(conn->inputPin()->parent(), new QScriptedNodeEvent{});
+                    }
                 }
             }
         }

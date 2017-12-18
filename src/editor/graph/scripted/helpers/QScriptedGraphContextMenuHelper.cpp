@@ -106,10 +106,10 @@ void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNone(QMenu* m
 {
     QAction* action;
     action = menu->addAction("New node");
-    connect(action, &QAction::triggered, [&, menu, pos]() {
+    connect(action, &QAction::triggered, [&, pos]() {
         auto* dialog = new editor::QCreateScriptedNodeDialog{ _graph, _node_types };
 
-        connect(dialog, &editor::QCreateScriptedNodeDialog::finished, [&, menu, pos](QString classname) {
+        connect(dialog, &editor::QCreateScriptedNodeDialog::finished, [&, pos](QString classname) {
             auto* node = _graph->newScriptNode(classname);
             if (nullptr != node)
             {
@@ -123,7 +123,22 @@ void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNone(QMenu* m
 
 void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNode(QMenu* menu, QScriptedNode* node)
 {
-
+    QAction* action;
+    action = menu->addAction("Delete");
+    connect(action, &QAction::triggered, [&, node]() {
+        _graph->removeNode(node);
+    });
+    action = menu->addAction("Disconnect all");
+    connect(action, &QAction::triggered, [&, node]() {
+        for (QNodePin* pin : node->inputPins())
+        {
+            pin->disconnectAll();
+        }
+        for (QNodePin* pin : node->outputPins())
+        {
+            pin->disconnectAll();
+        }
+    });
 }
 
 void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNodePin(QMenu* menu, QScriptedNodePin* pin)

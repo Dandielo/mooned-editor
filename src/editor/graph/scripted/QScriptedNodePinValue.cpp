@@ -1,8 +1,10 @@
 #include "QScriptedNodePinValue.h"
 #include "QScriptedNodeProperty.h"
 #include "QScriptedNodePin.h"
+#include "QScriptedNode.h"
 #include "QScriptedNodeEvent.h"
 
+#include "graph/basic/QBasicNodeConnection.h"
 #include "graph/utils/QGraphicsLineEdit.h"
 #include "scripts/CScriptManager.h"
 
@@ -52,6 +54,20 @@ public:
         {
             // Send and update event to the parent node object
             QCoreApplication::postEvent(_property->nodePin()->parent(), new editor::QScriptedNodeEvent{});
+        }
+        else
+        {
+            editor::QScriptedNode* node = dynamic_cast<editor::QScriptedNode*>(_property->nodePin()->parent());
+            for (editor::QNodePin* out_pin : node->outputPins())
+            {
+                if (out_pin->isConnected())
+                {
+                    for (editor::QNodeConnection* conn : out_pin->connections())
+                    {
+                        QCoreApplication::postEvent(conn->inputPin()->parent(), new editor::QScriptedNodeEvent{});
+                    }
+                }
+            }
         }
     }
 
@@ -185,7 +201,7 @@ protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent* ev) override
     {
         _last_value = _value;
-        _capturing = true;
+        _capturing = _property->nodePin()->editable();
         _initial = ev->pos();
     }
 
@@ -200,9 +216,12 @@ protected:
 
     virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* ev) override
     {
-        _capturing = false;
-        setValue(static_cast<T>(_last_value + (_initial.y() - ev->pos().y()) * 1.0));
-        update();
+        if (_capturing)
+        {
+            _capturing = false;
+            setValue(static_cast<T>(_last_value + (_initial.y() - ev->pos().y()) * 1.0));
+            update();
+        }
     }
 
 private:

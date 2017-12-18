@@ -9,9 +9,10 @@
 #include <cassert>
 
 editor::QScriptedNodePin::QScriptedNodePin(QScriptedNode* parent, PinType type, QString name)
-    : QBasicNodePin(parent)
-    , _type(type)
-    , _name(name)
+    : QBasicNodePin{ parent }
+    , _type{ type }
+    , _name{ name }
+    , _editable{ true }
 {
     setParent(parent);
 }
@@ -125,7 +126,12 @@ editor::PinType editor::QScriptedNodePin::pinType() const
 
 bool editor::QScriptedNodePin::editable() const
 {
-    return pinType() == PinType::Output || connections().empty();
+    return _editable && (pinType() == PinType::Output || connections().empty());
+}
+
+void editor::QScriptedNodePin::setEditable(bool val)
+{
+    _editable = val;
 }
 
 bool editor::QScriptedNodePin::canConnect(QNodePin* pin) const

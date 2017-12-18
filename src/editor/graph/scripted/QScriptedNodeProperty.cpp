@@ -47,6 +47,12 @@ void editor::QScriptedNodeProperty::initialize(Scripts::CScriptManager* manager,
         _node_pin = dynamic_cast<QScriptedNodePin*>(node->newOutputPin(name.c_str()));
         _node_pin->setValue(QScriptedNodePinValue::create(this));
         _node_pin->value()->setParentItem(_node_pin);
+
+        auto disabled = manager->GetPropertyAttr(node_type, index, "noedit", "");
+        if (!disabled.empty() && disabled == "noedit")
+        {
+            _node_pin->setEditable(false);
+        }
     }
 
     assert(_node_pin != nullptr);

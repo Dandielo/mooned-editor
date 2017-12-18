@@ -27,7 +27,9 @@ namespace editor
         virtual QColor color() const override;
         virtual QString name() const override;
         virtual PinType pinType() const override;
+
         virtual bool editable() const override;
+        virtual void setEditable(bool val);
 
         virtual bool canConnect(QNodePin* pin) const override;
 
@@ -37,5 +39,6 @@ namespace editor
 
         Scripts::CScriptManager* _script_manager;
         QScriptedNodePinValue* _value;
+        bool _editable;
     };
 }
