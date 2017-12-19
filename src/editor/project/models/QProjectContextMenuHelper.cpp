@@ -59,6 +59,8 @@ void editor::QProjectContextMenuHelper::initialize(QEditorMainWindow* mwindow)
     add_node_action("Open");
     add_node_action("Save");
     add_node_action("Delete");
+
+    connect(_tree_view, &QTreeView::doubleClicked, this, &QProjectContextMenuHelper::onMouseDoubleClickAction);
 }
 
 void editor::QProjectContextMenuHelper::initializeProjectActions(QEditorMainWindow* mwindow)
@@ -84,6 +86,20 @@ void editor::QProjectContextMenuHelper::onCustomContextMenuAction(const QPoint& 
         {
             _node_menu->setProperty("node", QVariant::fromValue(node));
             _node_menu->exec(_tree_view->mapToGlobal(pos));
+        }
+    }
+}
+
+void editor::QProjectContextMenuHelper::onMouseDoubleClickAction(const QModelIndex& index)
+{
+    if (index.isValid())
+    {
+        auto* node = reinterpret_cast<QProjectTreeNode*>(index.internalPointer());
+        auto* tree = dynamic_cast<QProjectTree*>(node->parent());
+
+        if (nullptr != tree)
+        {
+            tree->project()->openElement(node->toString());
         }
     }
 }

@@ -26,6 +26,7 @@ namespace editor
 
     public slots:
         void onCustomContextMenuAction(const QPoint& pos);
+        void onMouseDoubleClickAction(const QModelIndex& index);
         void onProjectMenuAction();
         void onNodeMenuAction();
 
