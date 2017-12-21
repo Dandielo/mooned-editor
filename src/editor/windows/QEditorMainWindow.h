@@ -9,6 +9,14 @@
 
 using Scripts::CScriptManager;
 
+using TProjectFactory = editor::QProject*(*)(QString type, QString project_file, void* userdata);
+
+struct SProjectTypeEntry
+{
+    TProjectFactory factory;
+    void* userdata;
+};
+
 class QEditorMainWindow : public QMainWindow
 {
     Q_OBJECT;
@@ -18,6 +26,8 @@ public:
     virtual ~QEditorMainWindow() override;
 
     QString projectDir();
+
+    void registerProjectType(QString type, TProjectFactory factory, void* userdata = nullptr);
 
 public slots:
     void onSave();
@@ -31,7 +41,6 @@ public slots:
     void onSaveProject(QString name);
     void onCloseProject(QString name);
 
-
     QWorkspaceWindow* workspaceWindow() const { return _workspace_window; }
     editor::QProjectModel* projectModel() const { return _project_model; }
 
@@ -44,4 +53,6 @@ private:
 
     editor::QProject* _active_project;
     QVector<editor::QProject*> _projects;
+
+    QMap<QString, SProjectTypeEntry> _project_types;
 };

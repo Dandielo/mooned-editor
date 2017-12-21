@@ -13,15 +13,6 @@
 
 static const char* ProjectFileExtension = ".mprj";
 
-editor::QProject::QProject(QString name, QDir location)
-    : QObject{ nullptr }
-    , _name{ name }
-    , _filename{ name + ProjectFileExtension }
-    , _location{ location }
-    , _elements{ }
-{
-}
-
 editor::QProject::QProject()
     : QObject{ nullptr }
     , _name{ "" }
@@ -57,17 +48,11 @@ bool editor::QProject::open(QFileInfo file_info)
     _location = file_info.absoluteDir();
 
     // Read the project data
-    QFile project_file{ file_info.absoluteFilePath() };
-    project_file.open(QFile::Text | QFile::ReadOnly);
-    QByteArray file_data = project_file.readAll();
-    project_file.close();
-
-    // Parse the given document
-    QJsonDocument json_project = QJsonDocument::fromJson(file_data);
-    QJsonObject json_root = json_project.object();
+    QJsonObject json_root = loadProjectFile(file_info).object();
     onLoad(json_root);
 
     _name = json_root.value("name").toString();
+    _type = json_root.value("type").toString();
     return true;
 }
 
@@ -84,6 +69,7 @@ bool editor::QProject::save()
 
     json_root.insert("name", _name);
     json_root.insert("version", "alpha");
+    json_root.insert("type", _type);
 
     QJsonDocument json_project(json_root);
 
@@ -124,6 +110,11 @@ QString editor::QProject::name() const
     return _name;
 }
 
+QString editor::QProject::type() const
+{
+    return _type;
+}
+
 QString editor::QProject::filename() const
 {
     return _filename;
@@ -132,4 +123,16 @@ QString editor::QProject::filename() const
 QDir editor::QProject::location() const
 {
     return _location;
+}
+
+// Free function
+QJsonDocument editor::loadProjectFile(QFileInfo path)
+{
+    QFile project_file{ path.absoluteFilePath() };
+    project_file.open(QFile::Text | QFile::ReadOnly);
+    QByteArray file_data = project_file.readAll();
+    project_file.close();
+
+    // Parse the given document
+    return QJsonDocument::fromJson(file_data);
 }

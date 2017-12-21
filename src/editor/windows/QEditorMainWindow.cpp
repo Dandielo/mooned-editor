@@ -8,6 +8,10 @@
 #include <QFileDialog>
 #include <QDebug>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+
 static void destroyProject(editor::QProject* project)
 {
     auto* scripted_project = dynamic_cast<editor::QScriptedProject*>(project);
@@ -17,7 +21,6 @@ static void destroyProject(editor::QProject* project)
     }
     delete scripted_project;
 }
-
 
 static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects, QString name)
 {
@@ -31,6 +34,24 @@ static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects,
         }
     }
     return result;
+}
+
+static editor::QProject* scriptedProjectFactory(QString type, QString file_path, Scripts::CScriptManager* script_manager)
+{
+    auto* project = script_manager->CreateObject<editor::QScriptedProject, 1>(type.toLocal8Bit().data());
+    project->open(file_path);
+
+    if (project->isValid())
+    {
+        project->initialize(script_manager);
+    }
+    else
+    {
+        delete project;
+        project = nullptr;
+    }
+
+    return project;
 }
 
 static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWindow* ui, QMenuBar* menu)
@@ -71,7 +92,13 @@ QEditorMainWindow::QEditorMainWindow()
     asIScriptEngine* script_engine = *_script_manager->interpreter();
     registerEditorInterface(script_engine);
 
+    // Load all script project types
     _script_manager->Initialize("../../src/scripts/main.as");
+    auto project_types = _script_manager->QueryTypes("[project] : CProject");
+    for (asITypeInfo* project_type : project_types)
+    {
+        registerProjectType(project_type->GetName(), reinterpret_cast<TProjectFactory>(scriptedProjectFactory), _script_manager);
+    }
 
     // Create the workspace window
     auto* workspace_window = _script_manager->CreateObject<QScriptedWorkspaceWindow, 1>("Editor");
@@ -121,6 +148,11 @@ QString QEditorMainWindow::projectDir()
     return projects_path.canonicalPath();
 }
 
+void QEditorMainWindow::registerProjectType(QString type, TProjectFactory factory, void* userdata)
+{
+    _project_types.insert(type, { factory, userdata });
+}
+
 void QEditorMainWindow::onSave()
 {
     //_workspace_window->onSave();
@@ -143,24 +175,37 @@ void QEditorMainWindow::onNewProject()
 
 void QEditorMainWindow::onOpenProject()
 {
-    auto project = new editor::QScriptedProject{ };
-
     // Find a project file
     QString file_path = QFileDialog::getOpenFileName(this, "Open project file...", projectDir());
-    project->open({ file_path });
+    QJsonDocument doc = editor::loadProjectFile(file_path);
 
-    if (project->isValid())
+    if (doc.isNull() || !doc.isObject())
     {
-        project->initialize(_script_manager);
+        // Report error
+        return;
+    }
+
+    // Find the project type
+    QJsonObject root = doc.object();
+    QString type = root.value("type").toString();
+
+    if (type.isEmpty() || !_project_types.contains(type))
+    {
+        // Report error
+        return;
+    }
+
+    // Create the given project from a registered factory
+    const SProjectTypeEntry& entry = _project_types[type];
+    editor::QProject* project = (entry.factory)(type, file_path, entry.userdata);
+
+    // Initialize and register
+    if (nullptr != project)
+    {
         project->initialize(this);
 
-        // Add the project (if valid)
         _active_project = project;
         _projects.append(_active_project);
-    }
-    else
-    {
-        delete project;
     }
 }
 

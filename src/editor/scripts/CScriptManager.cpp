@@ -8,6 +8,8 @@
 //#include "qt/nodes/QNodePropertyApi.h"
 
 #include "windows/scripted/QScriptedWorkspaceWindow.h"
+#include "project/scripted/QScriptedProject.h"
+#include "project/scripted/QScriptedProjectExporter.h"
 #include "graph/scripted/QScriptedGraph.h"
 #include "graph/scripted/QScriptedNode.h"
 #include "graph/scripted/QScriptedNodeProperty.h"
@@ -34,6 +36,8 @@ CScriptManager::CScriptManager() : _interpreter(nullptr)
     editor::QScriptedNodeProperty::registerType(engine);
     editor::QScriptedNode::registerType(engine);
     editor::QScriptedGraph::registerType(engine);
+    editor::QScriptedProject::registerType(engine);
+    editor::QScriptedProjectExporter::registerType(engine);
     QScriptedWorkspaceWindow::registerType(engine);
     //Editor::EQt::asRegisterPropertyApi(engine);
     //QNode::RegisterType(engine);

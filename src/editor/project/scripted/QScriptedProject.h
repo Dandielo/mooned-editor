@@ -1,6 +1,7 @@
 #pragma once
 #include "project/interfaces/QProject.h"
 #include "scripts/CScriptManager.h"
+#include "scripts/CNativeScriptObject.h"
 
 class QEditorMainWindow;
 
@@ -12,13 +13,13 @@ namespace editor
     class QScriptedGraph;
     class QScriptedProjectTree;
 
-    class QScriptedProject : public QProject
+    class QScriptedProject : public QProject, public Scripts::CNativeScriptObject<QScriptedProject>
     {
+        M_SCRIPT_TYPE(QScriptedProject, "CProject");
         Q_OBJECT;
 
     public:
-        QScriptedProject();
-        QScriptedProject(QString name, QDir location);
+        QScriptedProject(asIScriptObject* object);
         virtual ~QScriptedProject() override;
 
         void initialize(QEditorMainWindow* mw) override;
@@ -30,6 +31,7 @@ namespace editor
         virtual void openElement(QString name) override;
         virtual void saveElement(QString name) override;
         virtual void deleteElement(QString name) override;
+        virtual void exportElement(QString name) override;
 
     signals:
         void projectTreeChanged(QProjectTree* tree);

@@ -5,6 +5,7 @@
 #include <QString>
 #include <QObject>
 #include <QDir>
+#include <QJsonDocument>
 
 class QEditorMainWindow;
 
@@ -18,12 +19,10 @@ namespace editor
 
     public:
         QProject();
-        QProject(QString name, QDir location);
         virtual ~QProject();
 
-        virtual void initialize(QEditorMainWindow* mw) = 0;
-
         QString name() const;
+        QString type() const;
         QString filename() const;
         QDir location() const;
 
@@ -40,6 +39,9 @@ namespace editor
         virtual void openElement(QString name) = 0;
         virtual void saveElement(QString name) = 0;
         virtual void deleteElement(QString name) = 0;
+        virtual void exportElement(QString name) = 0;
+
+        virtual void initialize(QEditorMainWindow* mw) = 0;
 
     public slots:
         virtual void newGraph(QString classname, QString name) = 0;
@@ -50,9 +52,12 @@ namespace editor
 
     protected:
         QString _name;
+        QString _type;
         QString _filename;
         QDir _location;
 
         QMap<QString, QProjectElement*> _elements;
     };
+
+    QJsonDocument loadProjectFile(QFileInfo path);
 }

@@ -4,6 +4,7 @@
 #include "windows/QWorkspaceWindow.h"
 
 #include "project/models/QProjectModel.h"
+#include "project/dialogs/QDialogExportProjectElement.h"
 #include "project/scripted/nodes/QScriptedProjectTree.h"
 #include "project/scripted/nodes/QScriptedGraphNode.h"
 #include "project/scripted/elements/QScriptedElementGraph.h"
@@ -64,16 +65,10 @@ static editor::QProjectElement* findProjectElementByDisplayText(QMap<QString, ed
     return result;
 }
 
-editor::QScriptedProject::QScriptedProject()
-    : QProject{}
-    , _script_manager{ nullptr }
-    , _project_tree{ nullptr }
-    , _model{ nullptr }
-{
-}
 
-editor::QScriptedProject::QScriptedProject(QString name, QDir location)
-    : QProject{ name, location }
+editor::QScriptedProject::QScriptedProject(asIScriptObject* object)
+    : QProject{ }
+    , CNativeScriptObject{ object }
     , _script_manager{ nullptr }
     , _project_tree{ nullptr }
     , _model{ nullptr }
@@ -180,6 +175,18 @@ void editor::QScriptedProject::deleteElement(QString name)
     if (nullptr != element)
     {
 
+    }
+}
+
+void editor::QScriptedProject::exportElement(QString name)
+{
+    auto* element = findProjectElementByDisplayText(_elements, name);
+    if (nullptr != element)
+    {
+        auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
+
+        auto* dialog = new editor::QDialogExportProjectElement{ element };
+        dialog->show();
     }
 }
 

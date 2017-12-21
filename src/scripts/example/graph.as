@@ -1,5 +1,6 @@
 #include "nodes.as"
 
+
 [graph, name: Example Graph]
 class ExampleGraph : CGraph
 {
@@ -10,7 +11,7 @@ class ExampleGraph : CGraph
             "[node] : CNode"
         }; 
     }
-
+    
     void OnCreate()
     {
         print("Example graph created.");

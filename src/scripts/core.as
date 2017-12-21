@@ -71,6 +71,42 @@ abstract class CGraph : IGraph
     private CGraphNative@ m_Object;
 }
 
+abstract class CProject : IProject 
+{
+    CProject() 
+    {
+        @m_Object = CProjectNative();
+    }
+
+    string name 
+    { 
+        get { return m_Object.name; }
+    }
+
+    void OnCreate() { }
+    void OnLoad() { }
+    void OnSave() { }
+    void OnExport() { }
+    void OnClose() { }
+
+    // Available element classes
+    array<string> AvailableElements() { return array<string>(); }
+
+    private CProjectNative@ m_Object;
+}
+
+abstract class CExporter : IExporter 
+{
+    CExporter() 
+    {
+        @m_Object = CExporterNative();
+    }
+
+    void OnSerialize(IProject@) { }
+
+    private CExporterNative@ m_Object;
+}
+
 abstract class CWorkspaceWindow : IWorkspaceWindow
 {
     CWorkspaceWindow() 

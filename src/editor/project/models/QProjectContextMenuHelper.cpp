@@ -58,6 +58,7 @@ void editor::QProjectContextMenuHelper::initialize(QEditorMainWindow* mwindow)
 
     add_node_action("Open");
     add_node_action("Save");
+    add_node_action("Export");
     add_node_action("Delete");
 
     connect(_tree_view, &QTreeView::doubleClicked, this, &QProjectContextMenuHelper::onMouseDoubleClickAction);
@@ -132,6 +133,7 @@ void editor::QProjectContextMenuHelper::onProjectMenuAction()
             connect(dialog, &QDialogNewProjectGraph::finished, [&, project](const QString& name) {
                 project->newGraph("BasicGraph", name);
             });
+
             dialog->show();
         });
     }
@@ -161,6 +163,9 @@ void editor::QProjectContextMenuHelper::onNodeMenuAction()
         });
         emit_if_action("node.delete", [&](QString node_name) {
             tree->project()->deleteElement(node_name);
+        });
+        emit_if_action("node.export", [&](QString node_name) {
+            tree->project()->exportElement(node_name);
         });
     }
 }
