@@ -9,14 +9,6 @@
 
 using Scripts::CScriptManager;
 
-using TProjectFactory = editor::QProject*(*)(QString type, QString project_file, void* userdata);
-
-struct SProjectTypeEntry
-{
-    TProjectFactory factory;
-    void* userdata;
-};
-
 class QEditorMainWindow : public QMainWindow
 {
     Q_OBJECT;
@@ -25,24 +17,27 @@ public:
     QEditorMainWindow();
     virtual ~QEditorMainWindow() override;
 
-    QString projectDir();
+    QString defalutProjectLocation();
 
-    void registerProjectType(QString type, TProjectFactory factory, void* userdata = nullptr);
+    void registerProjectType(QString type, editor::TProjectFactory factory, void* userdata = nullptr);
+
+    QWorkspaceWindow* workspaceWindow() const { return _workspace_window; }
+    editor::QProjectModel* projectModel() const { return _project_model; }
+
+    //! Returns all registered project type names.
+    auto getProjectTypes() const -> const auto& { return _project_types; }
 
 public slots:
     void onSave();
     void onLoad();
 
     // Project action slots
-    void onNewProject();
+    void onNewProject(editor::QProject* project);
     void onOpenProject();
     void onSaveProject();
 
     void onSaveProject(QString name);
     void onCloseProject(QString name);
-
-    QWorkspaceWindow* workspaceWindow() const { return _workspace_window; }
-    editor::QProjectModel* projectModel() const { return _project_model; }
 
 private:
     QWorkspaceWindow* _workspace_window;
@@ -54,5 +49,5 @@ private:
     editor::QProject* _active_project;
     QVector<editor::QProject*> _projects;
 
-    QMap<QString, SProjectTypeEntry> _project_types;
+    QMap<QString, editor::SProjectTypeEntry> _project_types;
 };

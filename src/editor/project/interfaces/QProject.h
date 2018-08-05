@@ -11,53 +11,65 @@ class QEditorMainWindow;
 
 namespace editor
 {
-    class QProjectElement;
 
-    class QProject : public QObject
-    {
-        Q_OBJECT;
+class QProject;
 
-    public:
-        QProject();
-        virtual ~QProject();
+using TProjectFactory = editor::QProject*(*)(const QString& type, const QString& name, const QString& project_file, void* userdata);
 
-        QString name() const;
-        QString type() const;
-        QString filename() const;
-        QDir location() const;
+struct SProjectTypeEntry
+{
+    TProjectFactory factory;
+    void* userdata;
+};
 
-        bool isValid() const;
+class QProjectElement;
 
-        bool open(QFileInfo location);
-        bool save();
+class QProject : public QObject
+{
+    Q_OBJECT;
 
-        bool hasElement(QString name) const;
-        bool hasElement(QProjectElement* element);
-        void addElement(QProjectElement* element);
-        void removeElement(QProjectElement* element);
+public:
+    QProject();
+    virtual ~QProject();
 
-        virtual void openElement(QString name) = 0;
-        virtual void saveElement(QString name) = 0;
-        virtual void deleteElement(QString name) = 0;
-        virtual void exportElement(QString name) = 0;
+    QString name() const;
+    QString type() const;
+    QString filename() const;
+    QDir location() const;
 
-        virtual void initialize(QEditorMainWindow* mw) = 0;
+    bool isValid() const;
 
-    public slots:
-        virtual void newGraph(QString classname, QString name) = 0;
+    bool open(QFileInfo location);
+    bool save();
 
-    protected:
-        virtual void onSave(QJsonObject& root) = 0;
-        virtual void onLoad(const QJsonObject& root) = 0;
+    bool hasElement(QString name) const;
+    bool hasElement(QProjectElement* element);
+    void addElement(QProjectElement* element);
+    void removeElement(QProjectElement* element);
 
-    protected:
-        QString _name;
-        QString _type;
-        QString _filename;
-        QDir _location;
+    virtual void openElement(QString name) = 0;
+    virtual void saveElement(QString name) = 0;
+    virtual void deleteElement(QString name) = 0;
+    virtual void exportElement(QString name) = 0;
 
-        QMap<QString, QProjectElement*> _elements;
-    };
+    virtual void initialize(QEditorMainWindow* mw) = 0;
 
-    QJsonDocument loadProjectFile(QFileInfo path);
+public slots:
+    virtual void newGraph(QString classname, QString name) = 0;
+
+protected:
+    virtual void onSave(QJsonObject& root) = 0;
+    virtual void onLoad(const QJsonObject& root) = 0;
+
+protected:
+    QString _name;
+    QString _type;
+    QString _filename;
+    QDir _location;
+
+    QMap<QString, QProjectElement*> _elements;
+};
+
+QJsonDocument loadProjectFile(QFileInfo path);
+
 }

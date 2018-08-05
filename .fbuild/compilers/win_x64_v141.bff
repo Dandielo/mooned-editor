@@ -1,12 +1,12 @@
 // Windows x64 compiler - { toolset v141 } - { winsdk 10.0 } - { VS Community }
-//----- 
-.msvcToolsetVersionFull = '14.11.25503'
-.msvcCompilerVersionFull = '14.11.25325'
+//-----
+.msvcToolsetVersionFull = '14.14.26428'
+.msvcCompilerVersionFull = '14.14.26405'
 
 .mscWinSDKVersionMajor = '10'
 .mscWinSDKVersionFull = '10.0.16299.0'
 
-.mscToolset_v141 = 
+.mscToolset_v141 =
 [
     .BasePath_VSCommunity = 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community'
     .BasePath_Binaries = '$BasePath_VSCommunity$\VC\Tools\MSVC\$msvcToolsetVersionFull$\bin\HostX64\x64'
@@ -30,7 +30,7 @@
     .AssemblyExe   = '$BasePath_Binaries$/ml64.exe'
 ]
 
-.mscWindowsSDK_10 = 
+.mscWindowsSDK_10 =
 [
     .BasePath_WinSDK = 'C:\Program Files (x86)\Windows Kits\$mscWinSDKVersionMajor$'
 
@@ -68,7 +68,7 @@ Compiler( 'msc64_v141_compiler' )
     }
 }
 
-.msc64_v141_CompilerOptions = 
+.msc64_v141_CompilerOptions =
 [
     Using( .mscToolset_v141 )
     Using( .mscWindowsSDK_10 )
@@ -98,7 +98,7 @@ Compiler( 'msc64_v141_compiler' )
     }
 ]
 
-.msc64_v141_LinkerOptions = 
+.msc64_v141_LinkerOptions =
 [
     Using( .mscToolset_v141 )
     Using( .mscWindowsSDK_10 )
@@ -134,7 +134,7 @@ Compiler( 'msc64_v141_compiler' )
     }
 ]
 
-.msc64_v141_LibrarianOptions = 
+.msc64_v141_LibrarianOptions =
 [
     Using( .mscToolset_v141 )
     Using( .mscWindowsSDK_10 )
@@ -146,7 +146,7 @@ Compiler( 'msc64_v141_compiler' )
         + ' /MACHINE:x64'
 ]
 
-.platform_windows_x86_64_msc_v141 = 
+.platform_windows_x86_64_msc_v141 =
 [
     Using( .msc64_v141_CompilerOptions )
     Using( .msc64_v141_LinkerOptions )

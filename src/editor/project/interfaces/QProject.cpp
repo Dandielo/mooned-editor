@@ -38,14 +38,15 @@ bool editor::QProject::isValid() const
 
 bool editor::QProject::open(QFileInfo file_info)
 {
+    // Set the file name and location values
+    _filename = file_info.fileName();
+    _location = file_info.absoluteDir();
+
+    // Check if the values are valid #todo Is it good to store these vales so we can later create a 'new' project when this function fails?
     if (!file_info.exists())
     {
         return false;
     }
-
-    // Set the file name and location values
-    _filename = file_info.fileName();
-    _location = file_info.absoluteDir();
 
     // Read the project data
     QJsonObject json_root = loadProjectFile(file_info).object();

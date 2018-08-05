@@ -22,8 +22,11 @@ namespace editor
         QScriptedProject(asIScriptObject* object);
         virtual ~QScriptedProject() override;
 
+        void setScriptManager(Scripts::CScriptManager* script_manager);
+
+        void setup(QString type, QString project_name);
         void initialize(QEditorMainWindow* mw) override;
-        void initialize(Scripts::CScriptManager* script_manager);
+
         void shutdown();
 
         virtual void newGraph(QString classname, QString name) override;

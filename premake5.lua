@@ -4,7 +4,7 @@ require "fastbuild-hooks"
 
 local qt = premake.extensions.qt
 
-fbcompilers { 
+fbcompilers {
     {
         name = "win64_x64",
         system = "windows",
@@ -14,14 +14,14 @@ fbcompilers {
     }
 }
 
-newoption { 
+newoption {
     trigger = "qtbasepath",
     description = "Provides the base path for a Qt version which will be used for the Editor project.",
     value = "PATH"
 }
 
 -- Get the defaultpath found by Qt the module or use the path given from the command line
-qtbasepath = qt.defaultpath or _OPTIONS["qtbasepath"]
+qtbasepath = qt.defaultpath or _OPTIONS["qtbasepath"] or "C:/Qt/5.11.1/msvc2017_64"
 
 workspace "MEditor"
     platforms { "x64" }

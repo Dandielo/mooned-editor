@@ -79,6 +79,13 @@ editor::QScriptedProject::~QScriptedProject()
 {
 }
 
+void editor::QScriptedProject::setup(QString type, QString name)
+{
+    //! Set the project name and type.
+    _name = name;
+    _type = type;
+}
+
 void editor::QScriptedProject::initialize(QEditorMainWindow* mw)
 {
     // Create the project tree and register it in the view model
@@ -100,7 +107,7 @@ void editor::QScriptedProject::initialize(QEditorMainWindow* mw)
     emit projectTreeChanged(_project_tree);
 }
 
-void editor::QScriptedProject::initialize(Scripts::CScriptManager* script_manager)
+void editor::QScriptedProject::setScriptManager(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
 }

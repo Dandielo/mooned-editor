@@ -1,6 +1,7 @@
 #include "QEditorMainWindow.h"
 #include "scripted/QScriptedWorkspaceWindow.h"
 #include "project/scripted/QScriptedProject.h"
+#include "project/dialogs/QDialogNewProject.h"
 
 #include "ui_mainwindow.h"
 
@@ -36,20 +37,17 @@ static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects,
     return result;
 }
 
-static editor::QProject* scriptedProjectFactory(QString type, QString file_path, Scripts::CScriptManager* script_manager)
+static editor::QProject* scriptedProjectFactory(const QString& type, const QString& name, const QString& file_path, Scripts::CScriptManager* script_manager)
 {
     auto* project = script_manager->CreateObject<editor::QScriptedProject, 1>(type.toLocal8Bit().data());
-    project->open(file_path);
 
-    if (project->isValid())
+    if (!project->open(file_path))
     {
-        project->initialize(script_manager);
+        project->setup(type, name);
     }
-    else
-    {
-        delete project;
-        project = nullptr;
-    }
+
+    assert(project->isValid());
+    project->setScriptManager(script_manager);
 
     return project;
 }
@@ -69,7 +67,12 @@ static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWind
 
     // Project actions
     action = ui->menuFile->addAction("&New project");
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onNewProject);
+    QApplication::connect(action, &QAction::triggered, editor, [editor]()
+        {
+            auto* dialog = new editor::QDialogNewProject{ editor };
+            QApplication::connect(dialog, &editor::QDialogNewProject::finished, editor, &QEditorMainWindow::onNewProject);
+            dialog->show();
+        });
     action = ui->menuFile->addAction("&Open project");
     QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onOpenProject);
     action = ui->menuFile->addAction("&Save project");
@@ -81,6 +84,7 @@ QEditorMainWindow::QEditorMainWindow()
     , _workspace_window{ nullptr }
     , _script_manager{ nullptr }
     , _project_model{ nullptr }
+    , _active_project{ nullptr }
     , _projects{ }
 {
     Ui::QTWindow window_ui;
@@ -97,7 +101,7 @@ QEditorMainWindow::QEditorMainWindow()
     auto project_types = _script_manager->QueryTypes("[project] : CProject");
     for (asITypeInfo* project_type : project_types)
     {
-        registerProjectType(project_type->GetName(), reinterpret_cast<TProjectFactory>(scriptedProjectFactory), _script_manager);
+        registerProjectType(project_type->GetName(), reinterpret_cast<editor::TProjectFactory>(scriptedProjectFactory), _script_manager);
     }
 
     // Create the workspace window
@@ -135,7 +139,7 @@ QEditorMainWindow::~QEditorMainWindow()
     delete _script_manager;
 }
 
-QString QEditorMainWindow::projectDir()
+QString QEditorMainWindow::defalutProjectLocation()
 {
     QDir projects_path = QDir::homePath() + "/meditor";
     projects_path = projects_path.canonicalPath();
@@ -148,7 +152,7 @@ QString QEditorMainWindow::projectDir()
     return projects_path.canonicalPath();
 }
 
-void QEditorMainWindow::registerProjectType(QString type, TProjectFactory factory, void* userdata)
+void QEditorMainWindow::registerProjectType(QString type, editor::TProjectFactory factory, void* userdata)
 {
     _project_types.insert(type, { factory, userdata });
 }
@@ -163,20 +167,18 @@ void QEditorMainWindow::onLoad()
     //_workspace_window->onLoad();
 }
 
-void QEditorMainWindow::onNewProject()
+void QEditorMainWindow::onNewProject(editor::QProject* project)
 {
-    //auto* project = new editor::QScriptedProject{ "Test", projectDir() };
-    //project->initialize(_script_manager);
-    //project->initialize(this);
+    project->initialize(this);
 
-    //_active_project = project;
-    //_projects.append(_active_project);;
+    _active_project = project;
+    _projects.append(_active_project);;
 }
 
 void QEditorMainWindow::onOpenProject()
 {
     // Find a project file
-    QString file_path = QFileDialog::getOpenFileName(this, "Open project file...", projectDir());
+    QString file_path = QFileDialog::getOpenFileName(this, "Open project file...", defalutProjectLocation());
     QJsonDocument doc = editor::loadProjectFile(file_path);
 
     if (doc.isNull() || !doc.isObject())
@@ -196,8 +198,8 @@ void QEditorMainWindow::onOpenProject()
     }
 
     // Create the given project from a registered factory
-    const SProjectTypeEntry& entry = _project_types[type];
-    editor::QProject* project = (entry.factory)(type, file_path, entry.userdata);
+    const auto& entry = _project_types[type];
+    editor::QProject* project = (entry.factory)(type, "", file_path, entry.userdata);
 
     // Initialize and register
     if (nullptr != project)

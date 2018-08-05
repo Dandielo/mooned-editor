@@ -131,7 +131,7 @@ void editor::QProjectContextMenuHelper::onProjectMenuAction()
             auto* dialog = new QDialogNewProjectGraph{ project };
 
             connect(dialog, &QDialogNewProjectGraph::finished, [&, project](const QString& name) {
-                project->newGraph("BasicGraph", name);
+                project->newGraph("ExampleGraph", name);
             });
 
             dialog->show();
