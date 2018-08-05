@@ -3,6 +3,11 @@
 
 class asITypeInfo;
 
+namespace Scripts
+{
+class CScriptManager;
+}
+
 namespace editor
 {
     class QScriptedGraphNodeTreeModel : public QAbstractItemModel
@@ -10,7 +15,7 @@ namespace editor
         Q_OBJECT;
 
     public:
-        QScriptedGraphNodeTreeModel(QVector<asITypeInfo*> types);
+        QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<asITypeInfo*> types);
         virtual ~QScriptedGraphNodeTreeModel() override;
 
         virtual int rowCount(const QModelIndex &parent) const override;
@@ -23,6 +28,8 @@ namespace editor
         virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
     private:
+        const Scripts::CScriptManager* const _script_manager;
+
         QVector<QString> _sections;
         QVector<asITypeInfo*> _types;
     };

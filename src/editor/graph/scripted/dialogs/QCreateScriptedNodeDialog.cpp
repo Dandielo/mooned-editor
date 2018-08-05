@@ -14,7 +14,7 @@ editor::QCreateScriptedNodeDialog::QCreateScriptedNodeDialog(QScriptedGraph* gra
     _ui = new Ui::DialogWithList{};
     _ui->setupUi(this);
 
-    _model = new QScriptedGraphNodeTreeModel{ node_types };
+    _model = new QScriptedGraphNodeTreeModel{ _graph->getScriptManager(), node_types };
     _ui->treeView->setModel(_model);
 
     _ui->buttonCreate->setDisabled(true);

@@ -1,13 +1,15 @@
 #include "QScriptedGraphNodeTreeModel.h"
+#include "scripts/CScriptManager.h"
 
 #include <angelscript.h>
 #include <cassert>
 
-editor::QScriptedGraphNodeTreeModel::QScriptedGraphNodeTreeModel(QVector<asITypeInfo*> types)
+editor::QScriptedGraphNodeTreeModel::QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<asITypeInfo*> types)
     : QAbstractItemModel{ nullptr }
+    , _script_manager{ script_manager }
     , _types{ types }
 {
-    _sections << "Name" << "Type" << "Description";
+    _sections << "Name" << "Description" << "Type";
 }
 
 editor::QScriptedGraphNodeTreeModel::~QScriptedGraphNodeTreeModel()
@@ -74,17 +76,17 @@ QVariant editor::QScriptedGraphNodeTreeModel::data(const QModelIndex &index, int
     }
 
     QVariant result;
-    if (index.column() == 2)
+    if (index.column() == 1)
     {
-        result = "{description}";
+        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info, "desc", "{none}"));
     }
-    else if (index.column() == 1)
+    else if (index.column() == 2)
     {
         result = type_info->GetName();
     }
     else
     {
-        result = "{name}";
+        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info, "name", "{none}"));
     }
 
     return result;

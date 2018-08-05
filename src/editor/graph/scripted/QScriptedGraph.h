@@ -20,6 +20,8 @@ namespace editor
         QScriptedGraph(asIScriptObject* object);
         virtual ~QScriptedGraph() override;
 
+        auto getScriptManager() const -> const auto* { return _script_manager; }
+
         void initialize(Scripts::CScriptManager* script_manager);
         void shutdown();
 
