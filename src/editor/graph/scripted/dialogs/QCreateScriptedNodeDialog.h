@@ -1,4 +1,6 @@
 #pragma once
+#include <scripts/angelscript_new/type.h>
+
 #include <QDialog>
 
 class asITypeInfo;
@@ -18,7 +20,7 @@ namespace editor
         Q_OBJECT;
 
     public:
-        QCreateScriptedNodeDialog(QScriptedGraph* graph, QVector<asITypeInfo*> node_types, QWidget* parent = nullptr);
+        QCreateScriptedNodeDialog(QScriptedGraph* graph, QVector<editor::script::Type> node_types, QWidget* parent = nullptr);
         virtual ~QCreateScriptedNodeDialog() override;
 
     signals:

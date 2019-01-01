@@ -1,42 +1,54 @@
 #pragma once
+#include <scripts/angelscript_new/object.h>
+
+#include <memory>
 #include <unordered_map>
 #include <angelscript.h>
 
 #include "as_script_module.h"
 #include "as_context_pool.h"
 
-namespace Scripts
+namespace editor::script
 {
-	namespace AngelScript
-	{
-		class AsInterpreter
-		{
-		public:
-			using ptr = std::shared_ptr<AsInterpreter>;
-			static asIScriptContext* GetActiveContext();
 
-			AsInterpreter();
-			~AsInterpreter();
+//! Defines a proxy object for the AngelScript asIScriptEngine object.
+//! \note This object holds the current execution state.
+//! \note Every engine object WILL create a new state machine.
+class Engine final
+{
+public:
+    Engine() noexcept;
+    ~Engine() noexcept = default;
 
-			script_context_ptr GetContext();
-			AsScriptModule::ptr GetDefaultModule();
+    //! Returns the native engine object.
+    auto native() noexcept -> asIScriptEngine* { return _script_engine.get(); }
 
-			asIScriptObject* CreateScriptObject(const std::string& name);
+    //! Returns the native engine object.
+    auto native() const noexcept -> const asIScriptEngine* { return _script_engine.get(); }
 
-			// User data
-			void* GetUserdata(size_t size) const;
+    //! Returns the requested module, the module can be in a 'empty' state.
+    auto find_module(const std::string& module_name) const noexcept -> Module;
 
-			// Script handling
-			void AddScript(const std::string& path);
-			void RebuildScripts();
+    //! Returns the requested module, the module can be in a 'empty' state.
+    auto get_module(const std::string& module_name, Module::Policy policy = Module::Policy::CreateIfMissing) noexcept -> Module;
 
-			// Operators
-			operator asIScriptEngine*() const { return m_Engine; }
+    //! Tries to find the requested type.
+    //! \returns Type::invalid on failure.
+    auto get_type(const std::string& type_name) const noexcept -> Type;
 
-		protected:
-			asIScriptEngine* m_Engine;
-			AsContextPool::ptr m_ContextPool;
-			std::unordered_map<std::string, AsScriptModule::ptr> m_Modules;
-		};
-	}
-}
+    //! Creates a new object of the given type name.
+    auto new_object(const std::string& type_name) noexcept -> Object;
+
+    //! Creates a new object of the given type name.
+    auto new_object(const Type& type) noexcept -> Object;
+
+
+private:
+    //! Deleter function signature.
+    using script_engine_ptr = std::unique_ptr<asIScriptEngine, void(*)(asIScriptEngine*) noexcept>;
+
+    //! Holds a unique pointer to a script engine instance.
+    script_engine_ptr _script_engine;
+};
+
+} // namespace editor::script

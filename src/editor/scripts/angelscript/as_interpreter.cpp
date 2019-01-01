@@ -3,12 +3,23 @@
 #include <scriptarray.h>
 #include <scriptstdstring.h>
 
+#include "scripts/angelscript_new/private.h"
+
 #include <QDebug>
 
-using namespace ::Scripts::AngelScript;
+namespace editor::script
+{
+namespace detail
+{
 
-// Implement a simple message callback function
-static inline void MessageCallback(const asSMessageInfo *msg, void *param)
+//! The script engine deleter.
+void release_script_engine(asIScriptEngine* engine) noexcept
+{
+    engine->Release();
+}
+
+//! The engine message callback
+void engine_message_callback(const asSMessageInfo *msg, void *param)
 {
     using logfunc_t = void(*)(const char* msg, ...);
 
@@ -26,90 +37,70 @@ static inline void MessageCallback(const asSMessageInfo *msg, void *param)
     }
 }
 
-static inline void PrintCallback(std::string message)
+//! The engine message callback
+void engine_print_function(const std::string& message)
 {
-	auto ctx = asGetActiveContext();
+    auto ctx = asGetActiveContext();
     std::string location = "AngelScript || ";
     if (ctx->GetThisPointer(0))
         location += reinterpret_cast<asIScriptObject*>(ctx->GetThisPointer())->GetObjectType()->GetName() + std::string("::");
-	location += ctx->GetFunction(0)->GetName();
+    location += ctx->GetFunction(0)->GetName();
 
     qDebug("[%s] %s", location.c_str(), message.c_str());
 }
 
-static inline void TypeInfoCleanupCallback(asITypeInfo* typeinfo)
+} // namespace detail
+
+//////////////////////////////////////////////////////////////////////////
+
+Engine::Engine() noexcept
+    : _script_engine{ asCreateScriptEngine(), &detail::release_script_engine }
 {
-	delete typeinfo->GetUserData(0);
+    _script_engine->SetMessageCallback(asFUNCTION(detail::engine_message_callback), nullptr, asCALL_CDECL);
+
+
+    // Register the string type
+    RegisterStdString(_script_engine.get());
+    RegisterScriptArray(_script_engine.get(), true);
+
+    // Register a basic print function
+    _script_engine->RegisterGlobalFunction("void print(const string& in)", asFUNCTION(detail::engine_print_function), asCALL_CDECL);
 }
 
-// Implement the global alloc and free functions for the AS script engine
-static inline void* AngelScriptAllocFunc(size_t size) {
-    return malloc(size);
-}
-
-static inline void AngelScriptFreeFunc(void* ptr) {
-    free(ptr);
-}
-
-asIScriptContext* AsInterpreter::GetActiveContext()
+auto Engine::get_type(const std::string& type_name) const noexcept -> Type
 {
-	return asGetActiveContext();
+    return Type::from_name(*this, type_name);
 }
 
-AsInterpreter::AsInterpreter() : m_Engine(nullptr), m_ContextPool(nullptr) {
-	asSetGlobalMemoryFunctions(AngelScriptAllocFunc, AngelScriptFreeFunc);
-
-	m_Engine = asCreateScriptEngine();
-	m_ContextPool = std::make_unique<AsContextPool>(m_Engine);
-
-	// Set the message callback
-	m_Engine->SetMessageCallback(asFUNCTION(MessageCallback), nullptr, asCALL_CDECL);
-	m_Engine->SetTypeInfoUserDataCleanupCallback(TypeInfoCleanupCallback);
-
-	// Register the string type
-	RegisterStdString(m_Engine);
-    RegisterScriptArray(m_Engine, true);
-
-	// Register a basic print function
-	m_Engine->RegisterGlobalFunction("void print(string& in)", asFUNCTION(PrintCallback), asCALL_CDECL);
-
-	// Create the default module
-	auto module = std::make_shared<AsScriptModule>(m_Engine, std::string("engine"));
-	m_Modules["engine"] = module;
-}
-
-script_context_ptr AsInterpreter::GetContext()
+auto Engine::new_object(const std::string& type_name) noexcept -> Object
 {
-	return m_ContextPool->LocalContext();
+    return new_object(get_type(type_name));
 }
 
-AsScriptModule::ptr AsInterpreter::GetDefaultModule()
+auto Engine::new_object(const Type& type) noexcept -> Object
 {
-	return m_Modules["engine"];
+    if (type.valid())
+    {
+        return { }; // Creates an 'empty' object.
+    }
+
+    auto* const script_object = _script_engine->CreateScriptObject(type.native());
+    if (script_object == nullptr)
+    {
+        return { }; // Creates an 'empty' object.
+    }
+
+    return ConstructorData<Object>{ type, script_object };
 }
 
-asIScriptObject* AsInterpreter::CreateScriptObject(const std::string& name)
+auto Engine::find_module(const std::string& module_name) const noexcept -> Module
 {
-	asITypeInfo* type_info = GetDefaultModule()->GetTypeInfoByName(name.c_str());
-	asIScriptObject* obj = reinterpret_cast<asIScriptObject*>(m_Engine->CreateScriptObject(type_info));
-	return obj;
+    return Module::find(*this, module_name);
 }
 
-void* AsInterpreter::GetUserdata(size_t size) const
+auto Engine::get_module(const std::string& module_name, Module::Policy policy /*= Module::Policy::CreateIfMissing*/) noexcept -> Module
 {
-    return malloc(size);
+    return Module::get(*this, module_name, policy);
 }
 
-void AsInterpreter::AddScript(const std::string& path)
-{
-	m_Modules["engine"]->AddSectionFromFile(path);
-}
-
-void AsInterpreter::RebuildScripts()
-{
-	m_Modules["engine"]->Build();
-}
-
-AsInterpreter::~AsInterpreter() {
-	m_Engine->ShutDownAndRelease();
-}
+} // namespace editor::script

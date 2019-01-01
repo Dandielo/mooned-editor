@@ -9,22 +9,29 @@
 #include "project/scripted/nodes/QScriptedGraphNode.h"
 #include "project/scripted/elements/QScriptedElementGraph.h"
 
+#include <QPointer>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
+#include <QDebug>
+
+#include <scriptarray.h>
 #include <cassert>
 
-static void destroyProjectElement(editor::QProjectElement* element)
+namespace editor
 {
-    auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
-    if (nullptr != graph_element)
-    {
-        graph_element->shutdown();
-    }
-    delete graph_element;
-}
+//
+//static void destroyProjectElement(QProject::QProjectElementPtr element)
+//{
+//    auto* scripted_element = dynamic_cast<QScriptedElementGraph*>(element.data());
+//    if (scripted_element)
+//    {
+//        scripted_element->shutdown();
+//        scripted_element->deleteLater(); // #todo needed?
+//    }
+//}
 
-static void initializeProjectElement(editor::QProjectElement* element, Scripts::CScriptManager* script_manager, editor::QProjectTree* project_tree)
+static void loadProjectElement(editor::QProjectElement* element, Scripts::CScriptManager* script_manager, editor::ProjectTreeRoot* project_tree)
 {
     auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
     if (nullptr != graph_element)
@@ -33,17 +40,18 @@ static void initializeProjectElement(editor::QProjectElement* element, Scripts::
         graph_element->load();
 
         // Add the node to the tree
-        project_tree->add(new editor::QScriptedGraphNode{ graph_element, project_tree });
+        project_tree->add(std::make_unique<editor::ScriptedGraphNode>(graph_element, project_tree));
     }
 }
 
-static void serializeProjectElement(QJsonObject& graph_object, editor::QProjectElement* element)
+static void saveProjectElement(QJsonObject& graph_object, editor::QProjectElement* element)
 {
     auto* graph = dynamic_cast<editor::QScriptedElementGraph*>(element);
     if (nullptr != graph)
     {
         graph_object.insert("name", graph->graphName());
         graph_object.insert("class", graph->className());
+        graph->save();
     }
     else
     {
@@ -51,10 +59,10 @@ static void serializeProjectElement(QJsonObject& graph_object, editor::QProjectE
     }
 }
 
-static editor::QProjectElement* findProjectElementByDisplayText(QMap<QString, editor::QProjectElement*>& elements, QString text)
+auto findProjectElementByDisplayText(QMap<QString, QProject::QProjectElementPtr>& elements, QString text) -> QProject::QProjectElementPtr
 {
-    editor::QProjectElement* result = nullptr;
-    for (editor::QProjectElement* element : elements)
+    QProject::QProjectElementPtr result;
+    for (const auto& element : elements)
     {
         if (element->displayText() == text)
         {
@@ -65,46 +73,43 @@ static editor::QProjectElement* findProjectElementByDisplayText(QMap<QString, ed
     return result;
 }
 
+//////////////////////////////////////////////////////////////////////////
 
-editor::QScriptedProject::QScriptedProject(asIScriptObject* object)
-    : QProject{ }
-    , CNativeScriptObject{ object }
-    , _script_manager{ nullptr }
-    , _project_tree{ nullptr }
-    , _model{ nullptr }
+QScriptedProject::QScriptedProject(editor::script::ScriptObject&& object, QFileInfo project_file, QString script_class)
+    : QProject{ std::move(project_file) }
+    , CNativeScriptObject{ std::move(object) }
+    , _script_class{ std::move(script_class) }
+{ }
+
+auto editor::QScriptedProject::class_name() const noexcept -> QString
 {
+    return _script_class;
 }
 
-editor::QScriptedProject::~QScriptedProject()
-{
-}
+} // namespace editor
 
-void editor::QScriptedProject::setup(QString type, QString name)
+void editor::QScriptedProject::initialize(QEditorMainWindow* mw) noexcept
 {
-    //! Set the project name and type.
-    _name = name;
-    _type = type;
-}
+    // Initialize internal data
+    gatherExporters();
 
-void editor::QScriptedProject::initialize(QEditorMainWindow* mw)
-{
     // Create the project tree and register it in the view model
     _model = mw->projectModel();
-    _project_tree = new editor::QScriptedProjectTree{ this };
+    _project_tree = std::make_unique<editor::ScriptedProjectTreeRoot>(this);
 
-    _model->addProject(_project_tree);
+    _model->add_project(_project_tree);
 
     // Connect project signals
     connect(this, (void(editor::QScriptedProject::*)(QWorkspace*)) &editor::QScriptedProject::graphOpened, mw->workspaceWindow(), &QWorkspaceWindow::addWorkspace);
     connect(this, &QScriptedProject::projectTreeChanged, _model, &QProjectModel::projectTreeChanged);
 
     // Initialize all loaded elements
-    for (auto* element : _elements)
+    for (auto& element : elements())
     {
-        initializeProjectElement(element, _script_manager, _project_tree);
+        loadProjectElement(element, _script_manager, _project_tree.get());
     }
 
-    emit projectTreeChanged(_project_tree);
+    emit projectTreeChanged(_project_tree.get());
 }
 
 void editor::QScriptedProject::setScriptManager(Scripts::CScriptManager* script_manager)
@@ -118,15 +123,8 @@ void editor::QScriptedProject::shutdown()
     disconnect(nullptr, nullptr, nullptr, nullptr);
 
     // Delete the project tree
-    _model->removeProject(_project_tree);
-    delete _project_tree;
-
-    // Delete all project elements
-    for (auto* element : _elements)
-    {
-        destroyProjectElement(element);
-    }
-    _elements.clear();
+    _model->remove_project(_project_tree);
+    _project_tree.reset();
 
     // Shutdown completed?
     _script_manager = nullptr;
@@ -134,32 +132,28 @@ void editor::QScriptedProject::shutdown()
 
 void editor::QScriptedProject::newGraph(QString classname, QString name)
 {
-    auto* element = new editor::QScriptedElementGraph{ this, classname, name };
-
-    if (!hasElement(element))
+    if (!contains_element(name))
     {
-        addElement(element);
+        QScriptedElementGraph* element = new editor::QScriptedElementGraph{ this, classname, name };
         element->initialize(_script_manager);
 
         // Add the node to the tree
-        _project_tree->add(new QScriptedGraphNode{ element, _project_tree });
+        _project_tree->add(std::make_unique<editor::ScriptedGraphNode>(element, _project_tree.get()));
+
+        // Add the element to the project.
+        add_element(element);
 
         // Emit signals
-        emit projectTreeChanged(_project_tree);
+        emit projectTreeChanged(_project_tree.get());
         emit graphOpened(element->graph());
-    }
-    else
-    {
-        delete element;
     }
 }
 
 void editor::QScriptedProject::openElement(QString name)
 {
-    auto* element = findProjectElementByDisplayText(_elements, name);
-    if (nullptr != element)
+    if (auto element = findProjectElementByDisplayText(elements(), name))
     {
-        auto* graph_element = dynamic_cast<QScriptedElementGraph*>(element);
+        auto* graph_element = dynamic_cast<QScriptedElementGraph*>(element.data());
         if (nullptr != graph_element)
         {
             emit graphOpened(graph_element->graph());
@@ -169,8 +163,7 @@ void editor::QScriptedProject::openElement(QString name)
 
 void editor::QScriptedProject::saveElement(QString name)
 {
-    auto* element = findProjectElementByDisplayText(_elements, name);
-    if (nullptr != element)
+    if (auto element = findProjectElementByDisplayText(elements(), name))
     {
         element->save();
     }
@@ -178,35 +171,30 @@ void editor::QScriptedProject::saveElement(QString name)
 
 void editor::QScriptedProject::deleteElement(QString name)
 {
-    auto* element = findProjectElementByDisplayText(_elements, name);
-    if (nullptr != element)
-    {
-
-    }
+    remove_element(name);
 }
 
 void editor::QScriptedProject::exportElement(QString name)
 {
-    auto* element = findProjectElementByDisplayText(_elements, name);
-    if (nullptr != element)
+    if (auto element = findProjectElementByDisplayText(elements(), name))
     {
-        auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
+        auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element.data());
 
-        auto* dialog = new editor::QDialogExportProjectElement{ element };
+        auto* dialog = new editor::QDialogExportProjectElement{ _script_manager, _exporters, settings().get("export.location").toString(), element };
         dialog->show();
     }
 }
 
-void editor::QScriptedProject::onSave(QJsonObject& root)
+void editor::QScriptedProject::onSave(QJsonObject& root) const
 {
     QJsonArray graphs_array;
 
-    for (auto* element : _elements)
+    for (auto& element : elements())
     {
         element->save();
 
         QJsonObject graph_object;
-        serializeProjectElement(graph_object, element);
+        saveProjectElement(graph_object, element);
         graphs_array.append(graph_object);
     }
 
@@ -242,7 +230,80 @@ void editor::QScriptedProject::onLoad(const QJsonObject& root)
 void editor::QScriptedProject::addGraph(QString classname, QString name)
 {
     auto* element = new editor::QScriptedElementGraph{ this, classname, name };
-    assert(!hasElement(element));
+    assert(!contains_element(name));
 
-    addElement(element);
+    add_element(element);
 }
+
+namespace editor
+{
+
+void editor::QScriptedProject::gatherExporters() noexcept
+{
+    // Get node queries
+    auto* script_engine = _script_manager->engine().native();
+    auto* call_context = script_engine->RequestContext();
+
+    // Prepare the function call
+    call_context->Prepare(GetScriptMethod("AvailableExporters", false));
+    call_context->SetObject(script_object().native());
+
+    // Execute the function
+    call_context->Execute();
+
+    // Get the result object
+    auto* const exporters_array = reinterpret_cast<CScriptArray*>(call_context->GetReturnObject());
+
+    // Gather the results
+    if (exporters_array != nullptr)
+    {
+        // Get the exporter interface type info object.
+        auto* const exporter_interface_type = script_engine->GetTypeInfoByName("IExporter");
+        assert(exporter_interface_type != nullptr); // If this interface does not exist, it migh been renamed?
+
+        // #todo Make a better abstraction for this thing...
+        const auto exporter_count = exporters_array->GetSize();
+        for (uint32_t i = 0; i < exporter_count; ++i)
+        {
+            // Get the exporter type by name
+            auto exporter_type_name = QString::fromStdString(*reinterpret_cast<const std::string*>(exporters_array->At(i)));
+            auto& exporter_type = _script_manager->GetTypeInfo(exporter_type_name.toStdString());
+
+            // Is the type defined and implements the proper interface?
+            if (exporter_type && exporter_type->Implements(exporter_interface_type))
+            {
+                _exporters.append(exporter_type_name);
+            }
+            else
+            {
+                static const QString log_message { "The given exporter type name '%1' is not valid: %2!" };
+
+                QString warning_details{ "type not found" };
+                if (exporter_type)
+                {
+                    warning_details = "type does not extend the 'CExporter' type";
+                }
+
+                qWarning() << "[editor][warning]" << log_message.arg(exporter_type_name, warning_details);
+            }
+        }
+
+        //for (uint i = 0; i < count; ++i)
+        //{
+        //    auto* str = reinterpret_cast<std::string*>(queries->At(i));
+        //    auto queried_types = script_manager->QueryTypes(*str);
+
+        //    for (auto* type : queried_types)
+        //    {
+        //        if (!_node_types.contains(type))
+        //        {
+        //            _node_types.append(type);
+        //        }
+        //    }
+        //}
+    }
+
+    script_engine->ReturnContext(call_context);
+}
+
+} // namespace editor

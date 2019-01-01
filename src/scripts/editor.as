@@ -2,9 +2,15 @@
 [exporter]
 class ExampleLuaExporter : CExporter
 {
-    void OnSerialize(IProject@ proj)
+    ExampleLuaExporter()
     {
-        print("Exporting project: " + proj.name);
+        print("ExampleLuaExporter()");
+    }
+
+    void OnExportGraph(IGraph@ graph, const string &in name)
+    {
+        writeln("-- Generated lua file from graph: " + graph.name + " " + name);
+        flush(graph.name + ".lua");
     }
 }
 
@@ -17,16 +23,16 @@ class ExampleProject : CProject
     void OnExport() { }
     void OnClose() { }
 
-    array<string> AvailableElements() 
-    { 
-        return array<string> = { 
+    array<string> AvailableElements()
+    {
+        return array<string> = {
             "ExampleGraph"
         };
     }
 
-    array<string> Exporters() 
+    array<string> AvailableExporters()
     {
-        return array<string> = { 
+        return array<string> = {
             "ExampleLuaExporter"
         };
     }
@@ -35,13 +41,13 @@ class ExampleProject : CProject
 [editor]
 class Editor : CWorkspaceWindow
 {
-    void OnCreate() 
-    { 
+    void OnCreate()
+    {
         print("Workspace window created.");
     }
-    
-    void OnDestroy() 
-    { 
+
+    void OnDestroy()
+    {
         print("Workspace window destroyed.");
     }
 }

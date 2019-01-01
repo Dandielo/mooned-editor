@@ -1,11 +1,9 @@
 #pragma once
-#include "interfaces/QWorkspace.h"
+#include <interfaces/QWorkspace.h>
+#include <project/basic/QProjectSettings.h>
 
-#include <QMap>
-#include <QString>
 #include <QObject>
 #include <QDir>
-#include <QJsonDocument>
 
 class QEditorMainWindow;
 
@@ -14,7 +12,7 @@ namespace editor
 
 class QProject;
 
-using TProjectFactory = editor::QProject*(*)(const QString& type, const QString& name, const QString& project_file, void* userdata);
+using TProjectFactory = editor::QProject*(*)(const QString& t, const QString& n, const QString& f, void* ud);
 
 struct SProjectTypeEntry
 {
@@ -24,52 +22,94 @@ struct SProjectTypeEntry
 
 class QProjectElement;
 
+//! The base class for all project types in this editor application.
+//! \note Creating a QProject object does always create a valid object.
 class QProject : public QObject
 {
     Q_OBJECT;
 
 public:
-    QProject();
-    virtual ~QProject();
+    //! A project is nothing more than a specific json file.
+    QProject(QFileInfo project_file) noexcept;
 
-    QString name() const;
-    QString type() const;
-    QString filename() const;
-    QDir location() const;
+    //! virtual dtor
+    virtual ~QProject() noexcept = default;
 
-    bool isValid() const;
+    //! Initializes the project element.
+    virtual void initialize(QEditorMainWindow* editor) noexcept = 0;
 
-    bool open(QFileInfo location);
-    bool save();
+    //! \returns The projects class name.
+    virtual auto class_name() const noexcept -> QString = 0;
 
-    bool hasElement(QString name) const;
-    bool hasElement(QProjectElement* element);
-    void addElement(QProjectElement* element);
-    void removeElement(QProjectElement* element);
+    //! \returns The project file info.
+    auto fileinfo() const noexcept -> const QFileInfo& { return _fileinfo; }
 
+    //! \returns The project location.
+    auto location() const noexcept -> QDir { return _fileinfo.absoluteDir(); }
+
+    //! \returns The project name.
+    auto name() const noexcept -> QString { return _fileinfo.baseName(); }
+
+    //! \returns The project settings object.
+    auto settings() noexcept -> QProjectSettings& { return _settings; }
+    auto settings() const noexcept -> const QProjectSettings& { return _settings; }
+
+    //! Tries to load project information for associated the project file.
+    bool load() noexcept;
+
+    //! Tries to save project information into associated the project file.
+    bool save() const noexcept;
+
+public:
+    //! Alias for project element pointers.
+    using QProjectElementPtr = QPointer<QProjectElement>;
+
+    //! Adds the given element to the project.
+    //! \param[in] element The element to be added to the project.
+    //! \returns true If the element was added to the project.
+    bool add_element(QProjectElementPtr element) noexcept;
+
+    //! Tries to remove the given element from the project.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    //! \note If the element is not part of the project, nothing will happen.
+    void remove_element(const QString& identifier) noexcept;
+
+    //! Searches for an element of the given identifier and returns a pointer to it.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    //! \returns A pointer to the requested element or nullptr if nothing was found.
+    auto get_element(const QString& identifier) noexcept -> QProjectElementPtr;
+    auto get_element(const QString& identifier) const noexcept -> const QProjectElementPtr;
+
+    //! Checks if the project contains an element with the given identifier.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    bool contains_element(const QString& identifier) const noexcept;
+
+    //! \returns A list of all elements in the project.
+    auto elements() noexcept -> QMap<QString, QProjectElementPtr>& { return _elements; }
+    auto elements() const noexcept -> const QMap<QString, QProjectElementPtr>& { return _elements; }
+
+public:
     virtual void openElement(QString name) = 0;
     virtual void saveElement(QString name) = 0;
     virtual void deleteElement(QString name) = 0;
     virtual void exportElement(QString name) = 0;
 
-    virtual void initialize(QEditorMainWindow* mw) = 0;
-
 public slots:
     virtual void newGraph(QString classname, QString name) = 0;
 
 protected:
-    virtual void onSave(QJsonObject& root) = 0;
+    virtual void onSave(QJsonObject& root) const = 0;
     virtual void onLoad(const QJsonObject& root) = 0;
 
-protected:
-    QString _name;
-    QString _type;
-    QString _filename;
-    QDir _location;
+private:
+    //! The project file of this project.
+    QFileInfo _fileinfo;
 
-    QMap<QString, QProjectElement*> _elements;
+    //! All project settings values.
+    QProjectSettings _settings;
+
+    //! Holds all elements part of this project.
+    QMap<QString, QProjectElementPtr> _elements{ };
 };
 
-QJsonDocument loadProjectFile(QFileInfo path);
-
-}
+} // namespace editor

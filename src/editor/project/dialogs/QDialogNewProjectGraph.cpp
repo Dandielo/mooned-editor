@@ -33,7 +33,7 @@ editor::QDialogNewProjectGraph::~QDialogNewProjectGraph()
 
 void editor::QDialogNewProjectGraph::checkAndFinish()
 {
-    if (!_project->hasElement(_ui->editValue->text()))
+    if (!_project->contains_element(_ui->editValue->text()))
     {
         emit finished(_ui->editValue->text());
     }

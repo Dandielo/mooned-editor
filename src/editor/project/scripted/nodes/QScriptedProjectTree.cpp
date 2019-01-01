@@ -1,11 +1,11 @@
-#include "QScriptedProjectTree.h"
-#include "project/scripted/QScriptedProject.h"
+#include <project/scripted/nodes/QScriptedProjectTree.h>
+#include <project/scripted/QScriptedProject.h>
 
-editor::QScriptedProjectTree::QScriptedProjectTree(QScriptedProject* project)
-    : QProjectTree{ project }
+namespace editor
 {
-}
 
-editor::QScriptedProjectTree::~QScriptedProjectTree()
-{
-}
+ScriptedProjectTreeRoot::ScriptedProjectTreeRoot(QScriptedProject* project) noexcept
+    : ProjectTreeRoot{ project }
+{ }
+
+} // namespace editor

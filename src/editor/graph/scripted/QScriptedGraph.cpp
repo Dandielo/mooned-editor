@@ -11,16 +11,16 @@
 
 #include <QDebug>
 
-editor::QScriptedGraph::QScriptedGraph(asIScriptObject* obj)
+editor::QScriptedGraph::QScriptedGraph(editor::script::ScriptObject&& obj)
     : QGraph{ }
-    , CNativeScriptObject{ obj }
+    , CNativeScriptObject{ std::move(obj) }
     , _script_manager{ nullptr }
     , _type{ nullptr }
     , _scene{ nullptr }
     , _view{ nullptr }
     , _nodes{ }
 {
-    _type = obj->GetObjectType();
+    _type = script_object().type().native();
 
     _scene = new QBasicGraphScene({ 0, 0, 10000, 10000 });
     _scene->setParent(this);
@@ -98,7 +98,7 @@ void editor::QScriptedGraph::addNode(QNode* node)
         _scene->addItem(script_node);
 
         // When a node is added
-        CallScriptMethod("OnNodeAdded", script_node->ScriptObject());
+        CallScriptMethod("OnNodeAdded", script_node->script_object());
     }
 }
 
@@ -111,7 +111,7 @@ void editor::QScriptedGraph::removeNode(QNode* node)
         _nodes.removeAt(_nodes.indexOf(script_node));
 
         // When a node is removed
-        CallScriptMethod("OnNodeRemoved", script_node->ScriptObject());
+        CallScriptMethod("OnNodeRemoved", script_node->script_object());
         script_node->deleteLater();
     }
 }
@@ -123,7 +123,7 @@ QVector<editor::QNode*> editor::QScriptedGraph::nodes() const
 
 editor::QScriptedNode* editor::QScriptedGraph::newScriptNode(QString nodeclass)
 {
-    auto* node = _script_manager->CreateObject<editor::QScriptedNode, 1>(nodeclass.toLocal8Bit().data(), false);
+    auto* node = _script_manager->CreateObject<editor::QScriptedNode, 1>(nodeclass.toLocal8Bit().data());
     if (node != nullptr)
     {
         node->initialize(_script_manager);

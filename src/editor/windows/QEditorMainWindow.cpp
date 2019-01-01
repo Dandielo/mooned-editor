@@ -18,6 +18,7 @@ static void destroyProject(editor::QProject* project)
     auto* scripted_project = dynamic_cast<editor::QScriptedProject*>(project);
     if (nullptr != scripted_project)
     {
+        scripted_project->save();
         scripted_project->shutdown();
     }
     delete scripted_project;
@@ -39,15 +40,12 @@ static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects,
 
 static editor::QProject* scriptedProjectFactory(const QString& type, const QString& name, const QString& file_path, Scripts::CScriptManager* script_manager)
 {
-    auto* project = script_manager->CreateObject<editor::QScriptedProject, 1>(type.toLocal8Bit().data());
+    auto factory_userdata = ::editor::QScriptedProject::FactoryData{ QFileInfo{ file_path }, type };
 
-    if (!project->open(file_path))
-    {
-        project->setup(type, name);
-    }
-
-    assert(project->isValid());
+    // Create the project object
+    auto* project = script_manager->create_object(type.toStdString(), factory_userdata);
     project->setScriptManager(script_manager);
+    project->load();
 
     return project;
 }
@@ -93,15 +91,15 @@ QEditorMainWindow::QEditorMainWindow()
     // Script classes
     _script_manager = new CScriptManager;
     extern void registerEditorInterface(asIScriptEngine* engine);
-    asIScriptEngine* script_engine = *_script_manager->interpreter();
+    asIScriptEngine* script_engine = _script_manager->engine().native();
     registerEditorInterface(script_engine);
 
     // Load all script project types
     _script_manager->Initialize("../../src/scripts/main.as");
     auto project_types = _script_manager->QueryTypes("[project] : CProject");
-    for (asITypeInfo* project_type : project_types)
+    for (const auto& project_type : project_types)
     {
-        registerProjectType(project_type->GetName(), reinterpret_cast<editor::TProjectFactory>(scriptedProjectFactory), _script_manager);
+        registerProjectType(project_type.name().c_str(), reinterpret_cast<editor::TProjectFactory>(scriptedProjectFactory), _script_manager);
     }
 
     // Create the workspace window
@@ -118,12 +116,12 @@ QEditorMainWindow::QEditorMainWindow()
 
     // Setup other UI elements
     _project_model = new editor::QProjectModel{ window_ui.projectsFileTree };
-    _project_model->contextMenuHelper()->initialize(this);
+    _project_model->context_menu_helper().initialize(this);
 
     window_ui.projectsFileTree->setModel(_project_model);
     window_ui.projectsFileTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, _project_model->contextMenuHelper(), &editor::QProjectContextMenuHelper::onCustomContextMenuAction);
+    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, &_project_model->context_menu_helper(), &editor::QProjectContextMenuHelper::onCustomContextMenuAction);
 }
 
 QEditorMainWindow::~QEditorMainWindow()
@@ -178,31 +176,38 @@ void QEditorMainWindow::onNewProject(editor::QProject* project)
 void QEditorMainWindow::onOpenProject()
 {
     // Find a project file
-    QString file_path = QFileDialog::getOpenFileName(this, "Open project file...", defalutProjectLocation());
-    QJsonDocument doc = editor::loadProjectFile(file_path);
+    QString project_file_path = QFileDialog::getOpenFileName(this, tr("Open project file..."), defalutProjectLocation(), tr("Project files (*.mprj)"));
 
-    if (doc.isNull() || !doc.isObject())
+    // Try to open the project file.
+    QFile project_file{ project_file_path };
+    project_file.open(QFile::OpenModeFlag::ReadOnly);
+    if (!project_file.isOpen())
     {
-        // Report error
         return;
     }
 
-    // Find the project type
-    QJsonObject root = doc.object();
-    QString type = root.value("type").toString();
-
-    if (type.isEmpty() || !_project_types.contains(type))
+    // Load the project document
+    auto project_document = QJsonDocument::fromJson(project_file.readAll());
+    if (!project_document.isObject())
     {
-        // Report error
+        return;
+    }
+
+    // Find the project class
+    QJsonObject project_root = project_document.object();
+    QString project_class = project_root.value("class").toString();
+
+    if (!_project_types.contains(project_class))
+    {
         return;
     }
 
     // Create the given project from a registered factory
-    const auto& entry = _project_types[type];
-    editor::QProject* project = (entry.factory)(type, "", file_path, entry.userdata);
+    const auto& entry = _project_types[project_class];
+    editor::QProject* const project = (entry.factory)(project_class, "", project_file_path, entry.userdata);
 
     // Initialize and register
-    if (nullptr != project)
+    if (project)
     {
         project->initialize(this);
 

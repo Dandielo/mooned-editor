@@ -4,9 +4,7 @@
 
 #include "ui_dialog_with_list.h"
 
-#include <angelscript.h>
-
-editor::QCreateScriptedNodeDialog::QCreateScriptedNodeDialog(QScriptedGraph* graph, QVector<asITypeInfo*> node_types, QWidget* parent /*= nullptr*/)
+editor::QCreateScriptedNodeDialog::QCreateScriptedNodeDialog(QScriptedGraph* graph, QVector<editor::script::Type> node_types, QWidget* parent /*= nullptr*/)
     : QDialog{ parent }
     , _ui{ nullptr }
     , _graph(graph)
@@ -14,7 +12,7 @@ editor::QCreateScriptedNodeDialog::QCreateScriptedNodeDialog(QScriptedGraph* gra
     _ui = new Ui::DialogWithList{};
     _ui->setupUi(this);
 
-    _model = new QScriptedGraphNodeTreeModel{ _graph->getScriptManager(), node_types };
+    _model = new QScriptedGraphNodeTreeModel{ _graph->getScriptManager(), std::move(node_types) };
     _ui->treeView->setModel(_model);
 
     _ui->buttonCreate->setDisabled(true);

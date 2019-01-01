@@ -27,6 +27,8 @@ workspace "MEditor"
     platforms { "x64" }
     configurations { "Debug", "Release" }
 
+    cppdialect "C++17"
+
     -- If fastbuild is used then used the c7 debug format to enable obj file caching.
     if _ACTION == "fastbuild" then
         debugformat "c7"

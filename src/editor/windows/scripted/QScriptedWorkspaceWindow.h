@@ -12,7 +12,7 @@ class QScriptedWorkspaceWindow : public QWorkspaceWindow, public Scripts::CNativ
     M_SCRIPT_TYPE(QScriptedWorkspaceWindow, "CWorkspaceWindow");
 
 public:
-    QScriptedWorkspaceWindow(asIScriptObject* obj);
+    QScriptedWorkspaceWindow(editor::script::ScriptObject&& obj);
     virtual ~QScriptedWorkspaceWindow() override;
 
     void initialize(Scripts::CScriptManager* script_manager);

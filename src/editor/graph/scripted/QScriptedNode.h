@@ -10,7 +10,7 @@ namespace editor
         M_SCRIPT_TYPE(QScriptedNode, "CNode");
 
     public:
-        QScriptedNode(asIScriptObject* object);
+        QScriptedNode(editor::script::ScriptObject&& object);
         virtual ~QScriptedNode() override;
 
         void initialize(Scripts::CScriptManager* script_Manager);

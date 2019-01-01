@@ -4,10 +4,10 @@
 #include <angelscript.h>
 #include <cassert>
 
-editor::QScriptedGraphNodeTreeModel::QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<asITypeInfo*> types)
+editor::QScriptedGraphNodeTreeModel::QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<editor::script::Type> types)
     : QAbstractItemModel{ nullptr }
     , _script_manager{ script_manager }
-    , _types{ types }
+    , _types{ std::move(types) }
 {
     _sections << "Name" << "Description" << "Type";
 }
@@ -44,7 +44,7 @@ QModelIndex editor::QScriptedGraphNodeTreeModel::index(int row, int column, cons
     }
 
     assert(!parent.isValid()); // For now we can't have a parent
-    return createIndex(row, column, _types.at(row));
+    return createIndex(row, column, const_cast<editor::script::Type*>(&_types.at(row)));
 }
 
 QModelIndex editor::QScriptedGraphNodeTreeModel::parent(const QModelIndex &child) const
@@ -63,7 +63,7 @@ QVariant editor::QScriptedGraphNodeTreeModel::data(const QModelIndex &index, int
         return {};
     }
 
-    auto* type_info = static_cast<asITypeInfo*>(index.internalPointer());
+    auto& type_info = *static_cast<editor::script::Type*>(index.internalPointer());
 
     if (role == Qt::UserRole)
     {
@@ -78,7 +78,7 @@ QVariant editor::QScriptedGraphNodeTreeModel::data(const QModelIndex &index, int
     QVariant result;
     if (index.column() == 1)
     {
-        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info, "desc", "{none}"));
+        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info.native(), "desc", "{none}"));
     }
     else if (index.column() == 2)
     {
@@ -86,7 +86,7 @@ QVariant editor::QScriptedGraphNodeTreeModel::data(const QModelIndex &index, int
     }
     else
     {
-        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info, "name", "{none}"));
+        result = QString::fromStdString(_script_manager->GetTypeAttr(type_info.native(), "name", "{none}"));
     }
 
     return result;

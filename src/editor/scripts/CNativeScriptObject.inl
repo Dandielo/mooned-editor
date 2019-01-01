@@ -1,7 +1,10 @@
 template<class T>
-Scripts::CNativeScriptObject<T>::CNativeScriptObject(asIScriptObject* object) : CScriptObject(object), m_RefCount(1), m_IsDead(nullptr)
+Scripts::CNativeScriptObject<T>::CNativeScriptObject(ScriptObject&& object)
+    : ScriptClass{ std::move(object) }
+    , m_RefCount{ 1 }
+    , m_IsDead{ nullptr }
 {
-    m_IsDead = object->GetWeakRefFlag();
+    m_IsDead = script_object().native()->GetWeakRefFlag();
     m_IsDead->AddRef();
 }
 
@@ -22,6 +25,17 @@ void Scripts::CNativeScriptObject<T>::registerType(asIScriptEngine* engine)
     r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_FACTORY, factory_name.c_str(), asFUNCTION(CNativeScriptObject::ObjectFactory), asCALL_CDECL);
     //r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_ADDREF, "void f()", asMETHOD(T, AddRef), asCALL_THISCALL);
     //r = engine->RegisterObjectBehaviour(T::ClassName, asBEHAVE_RELEASE, "void f()", asMETHOD(T, Release), asCALL_THISCALL);
+    T::registerTypeInterface(engine);
+}
+
+template<class T>
+void Scripts::CNativeScriptObject<T>::registerTypeNoFactory(asIScriptEngine* engine)
+{
+    int r;
+    std::string factory_name = std::string(T::ClassName) + "@ f()";
+
+    r = engine->RegisterObjectType(T::ClassName, 0, asOBJ_REF | asOBJ_NOCOUNT);
+
     T::registerTypeInterface(engine);
 }
 
@@ -47,10 +61,10 @@ void Scripts::CNativeScriptObject<T>::Release()
 template<class T>
 T* Scripts::CNativeScriptObject<T>::ObjectFactory()
 {
-    auto ctx = AsInterpreter::GetActiveContext();
-    auto udata = reinterpret_cast<int*>(ctx->GetUserData(0x01));
+    auto ctx = asGetActiveContext();
+    auto udata = reinterpret_cast<uintptr_t>(ctx->GetUserData(0x01));
 
-    if (udata == nullptr || *udata != 1)
+    if (udata != 1)
     {
         ctx->SetException("This object can be created only by the editor!");
         return nullptr;
@@ -66,7 +80,7 @@ T* Scripts::CNativeScriptObject<T>::ObjectFactory()
     }
 
     auto obj = reinterpret_cast<asIScriptObject*>(ctx->GetThisPointer(0));
-    return new T(obj);
+    return new T{ editor::script::ScriptObject::from_native(obj) };
 }
 
 template<class T>
@@ -87,47 +101,58 @@ inline void SetContextArgument<asBYTE>(asIScriptContext* ctx, asUINT index, asBY
 
 template<>
 inline void SetContextArgument<asWORD>(asIScriptContext* ctx, asUINT index, asWORD value) {
-    ctx->SetArgByte(index, value);
+    ctx->SetArgWord(index, value);
 }
 
 template<>
 inline void SetContextArgument<asDWORD>(asIScriptContext* ctx, asUINT index, asDWORD value) {
-    ctx->SetArgByte(index, value);
+    ctx->SetArgDWord(index, value);
 }
 
 template<>
 inline void SetContextArgument<asQWORD>(asIScriptContext* ctx, asUINT index, asQWORD value) {
-    ctx->SetArgByte(index, value);
+    ctx->SetArgQWord(index, value);
 }
 
 template<>
 inline void SetContextArgument<float>(asIScriptContext* ctx, asUINT index, float value) {
-    ctx->SetArgByte(index, value);
+    ctx->SetArgFloat(index, value);
 }
 
 template<>
 inline void SetContextArgument<double>(asIScriptContext* ctx, asUINT index, double value) {
-    ctx->SetArgByte(index, value);
+    ctx->SetArgDouble(index, value);
 }
 
 template<class T>
 template<class... Args>
-void Scripts::CNativeScriptObject<T>::CallScriptMethod(const char* name, Args&&... args)
+void Scripts::CNativeScriptObject<T>::CallScriptMethod(const std::string& name, Args&&... args) const
 {
     auto wrapper = [](...) {};
-    auto engine = _script_object->GetEngine();
-    auto ctx = engine->RequestContext();
 
-    int index = 0;
-    auto func = GetScriptMethod(name, false);
-    if (func) {
-        ctx->Prepare(func);
-        ctx->SetObject(_script_object);
+    /*
+        auto engine = _script_object.native()->GetEngine();
+        auto ctx = engine->RequestContext();*/
 
-        wrapper((SetContextArgument(ctx, index++, args), 0)...);
+    auto method = editor::script::Method::from_name(_script_object.type(), name);
+    if (method.valid())
+    {
+        auto context = editor::script::ScriptContext::from_any(_script_object);
 
-        ctx->Execute();
+        context.prepare(method, _script_object);
+        context.call(std::forward<Args>(args)...);
     }
 
-    engine->ReturnContext(ctx);
+    //int index = 0;
+    //auto func = GetScriptMethod(name, false);
+    //if (func) {
+    //    ctx->Prepare(func);
+    //    ctx->SetObject(_script_object);
+
+    //    wrapper((SetContextArgument(ctx, index++, args), 0)...);
+
+    //    ctx->Execute();
+    //}
+
+    //engine->ReturnContext(ctx);
 }

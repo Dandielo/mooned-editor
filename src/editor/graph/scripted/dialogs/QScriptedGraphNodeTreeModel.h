@@ -1,5 +1,6 @@
 #pragma once
 #include <QAbstractItemModel>
+#include <scripts/angelscript_new/type.h>
 
 class asITypeInfo;
 
@@ -15,7 +16,7 @@ namespace editor
         Q_OBJECT;
 
     public:
-        QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<asITypeInfo*> types);
+        QScriptedGraphNodeTreeModel(const Scripts::CScriptManager* script_manager, QVector<editor::script::Type> types);
         virtual ~QScriptedGraphNodeTreeModel() override;
 
         virtual int rowCount(const QModelIndex &parent) const override;
@@ -31,6 +32,6 @@ namespace editor
         const Scripts::CScriptManager* const _script_manager;
 
         QVector<QString> _sections;
-        QVector<asITypeInfo*> _types;
+        QVector<editor::script::Type> _types;
     };
 }

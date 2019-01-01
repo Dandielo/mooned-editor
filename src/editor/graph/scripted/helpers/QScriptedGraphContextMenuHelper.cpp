@@ -30,15 +30,13 @@ void editor::QScriptedGraphContextMenuHelper::initialize(Scripts::CScriptManager
     _graph = graph;
 
     // Get node queries
-    auto* script_object = graph->ScriptObject();
-    auto* engine = script_object->GetEngine();
+    auto* engine = graph->script_object().native()->GetEngine();
     auto* ctx = engine->RequestContext();
 
     ctx->Prepare(graph->GetScriptMethod("NodeQueries", false));
-    ctx->SetObject(script_object);
+    ctx->SetObject(graph->script_object().native());
     ctx->Execute();
 
-    std::vector<asITypeInfo*> node_types;
     auto* queries = reinterpret_cast<CScriptArray*>(ctx->GetReturnObject());
     if (nullptr != queries)
     {
@@ -48,7 +46,7 @@ void editor::QScriptedGraphContextMenuHelper::initialize(Scripts::CScriptManager
             auto* str = reinterpret_cast<std::string*>(queries->At(i));
             auto queried_types = script_manager->QueryTypes(*str);
 
-            for (auto* type : queried_types)
+            for (const auto& type : queried_types)
             {
                 if (!_node_types.contains(type))
                 {
@@ -124,12 +122,10 @@ void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNone(QMenu* m
 void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNode(QMenu* menu, QScriptedNode* node)
 {
     QAction* action;
-    action = menu->addAction("Delete");
-    connect(action, &QAction::triggered, [&, node]() {
-        _graph->removeNode(node);
-    });
-    action = menu->addAction("Disconnect all");
-    connect(action, &QAction::triggered, [&, node]() {
+
+    // Helper function to disconect all pins from the given node.
+    auto disconnect_all_pins = [](QNode* node)
+    {
         for (QNodePin* pin : node->inputPins())
         {
             pin->disconnectAll();
@@ -138,7 +134,22 @@ void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNode(QMenu* m
         {
             pin->disconnectAll();
         }
-    });
+    };
+
+    // Just disconnect all pins
+    action = menu->addAction("Disconnect all");
+    connect(action, &QAction::triggered, [&, node]()
+        {
+            disconnect_all_pins(node);
+        });
+
+    // Delete = disconnect + remove
+    action = menu->addAction("Delete");
+    connect(action, &QAction::triggered, [&, node]()
+        {
+            disconnect_all_pins(node);
+            _graph->removeNode(node);
+        });
 }
 
 void editor::QScriptedGraphContextMenuHelper::initializeContextMenuNodePin(QMenu* menu, QScriptedNodePin* pin)

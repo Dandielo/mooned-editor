@@ -49,9 +49,10 @@ void QScriptedWorkspaceWindow::registerTypeInterface(asIScriptEngine* engine)
     //engine->RegisterObjectMethod("CWorkspaceWindowNative", "IWorkspaceWindow@ newWorkspaceWindow(string)", asFUNCTION(QEditorWindowNewWorkspaceProxy), asCALL_CDECL_OBJFIRST);
 }
 
-QScriptedWorkspaceWindow::QScriptedWorkspaceWindow(asIScriptObject* obj) : QWorkspaceWindow(), CNativeScriptObject(obj)
-{
-}
+QScriptedWorkspaceWindow::QScriptedWorkspaceWindow(editor::script::ScriptObject&& obj)
+    : QWorkspaceWindow{ }
+    , CNativeScriptObject{ std::move(obj) }
+{ }
 
 QScriptedWorkspaceWindow::~QScriptedWorkspaceWindow()
 {
@@ -62,9 +63,9 @@ void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manage
     _script_manager = script_manager;
     auto types = _script_manager->QueryTypes("[graph] : CGraph");
 
-    for (auto* type : types)
+    for (const auto& type : types)
     {
-        _workspace_types.append(type->GetName());
+        _workspace_types.append(type.name().c_str());
     }
 
     CallScriptMethod("OnCreate");

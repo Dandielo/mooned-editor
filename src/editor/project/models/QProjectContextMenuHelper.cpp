@@ -11,8 +11,8 @@
 #include <QMenu>
 
 //#todo create a metatype header
-Q_DECLARE_METATYPE(editor::QProjectTreeNode*);
-Q_DECLARE_METATYPE(editor::QProjectTree*);
+Q_DECLARE_METATYPE(editor::ProjectTreeNode*);
+Q_DECLARE_METATYPE(editor::ProjectTreeRoot*);
 
 editor::QProjectContextMenuHelper::QProjectContextMenuHelper(QTreeView* tree_view, QObject* parent /* = nullptr */)
     : QObject{ parent }
@@ -75,8 +75,8 @@ void editor::QProjectContextMenuHelper::onCustomContextMenuAction(const QPoint& 
     QModelIndex index = _tree_view->indexAt(pos);
     if (index.isValid())
     {
-        auto* node = reinterpret_cast<QProjectTreeNode*>(index.internalPointer());
-        auto* tree = dynamic_cast<QProjectTree*>(node);
+        auto* node = reinterpret_cast<ProjectTreeNode*>(index.internalPointer());
+        auto* tree = dynamic_cast<ProjectTreeRoot*>(node);
 
         if (tree != nullptr)
         {
@@ -95,26 +95,26 @@ void editor::QProjectContextMenuHelper::onMouseDoubleClickAction(const QModelInd
 {
     if (index.isValid())
     {
-        auto* node = reinterpret_cast<QProjectTreeNode*>(index.internalPointer());
-        auto* tree = dynamic_cast<QProjectTree*>(node->parent());
+        auto* node = reinterpret_cast<ProjectTreeNode*>(index.internalPointer());
+        auto* tree = dynamic_cast<ProjectTreeRoot*>(node->parent());
 
         if (nullptr != tree)
         {
-            tree->project()->openElement(node->toString());
+            tree->project()->openElement(node->value(Qt::ItemDataRole::DisplayRole).toString());
         }
     }
 }
 
 void editor::QProjectContextMenuHelper::onProjectMenuAction()
 {
-    auto* tree = qvariant_cast<QProjectTree*>(_project_menu->property("tree"));
+    auto* tree = qvariant_cast<ProjectTreeRoot*>(_project_menu->property("tree"));
 
     auto action_name = sender()->objectName();
 
     auto emit_if_action = [&](QString name, auto fn) {
         if (action_name == name)
         {
-            fn(tree->toString());
+            fn(tree->value(Qt::ItemDataRole::DisplayRole).toString());
         }
     };
 
@@ -141,15 +141,15 @@ void editor::QProjectContextMenuHelper::onProjectMenuAction()
 
 void editor::QProjectContextMenuHelper::onNodeMenuAction()
 {
-    auto* node = qvariant_cast<QProjectTreeNode*>(_node_menu->property("node"));
-    auto* tree = dynamic_cast<QProjectTree*>(node->parent());
+    auto* node = qvariant_cast<ProjectTreeNode*>(_node_menu->property("node"));
+    auto* tree = dynamic_cast<ProjectTreeRoot*>(node->parent());
 
     auto action_name = sender()->objectName();
 
     auto emit_if_action = [&](QString name, auto fn) {
         if (action_name == name)
         {
-            fn(node->toString());
+            fn(node->value(Qt::ItemDataRole::DisplayRole).toString());
         }
     };
 

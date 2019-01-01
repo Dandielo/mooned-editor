@@ -11,9 +11,11 @@
 #include <QCoreApplication>
 #include <cassert>
 
-editor::QScriptedNode::QScriptedNode(asIScriptObject* object) : QNode(), CNativeScriptObject(object)
+editor::QScriptedNode::QScriptedNode(editor::script::ScriptObject&& object)
+    : QNode{ }
+    , CNativeScriptObject{ std::move(object) }
 {
-    _type = object->GetObjectType();
+    _type = script_object().type().native();
 
     // The node name
     //m_Name.setDefaultTextColor(textColor);
@@ -103,7 +105,15 @@ void editor::QScriptedNode::initialize(Scripts::CScriptManager* script_Manager)
     uint property_count = _type->GetPropertyCount();
     for (uint i = 0; i < property_count; ++i)
     {
-        auto* prop = reinterpret_cast<editor::QScriptedNodeProperty*>(_script_object->GetAddressOfProperty(i));
+        auto property_type = _script_object.native()->GetPropertyTypeId(i);
+        auto valid_property_type = _script_object.native()->GetEngine()->GetTypeInfoById(property_type);
+
+        if (valid_property_type->GetSubTypeCount() == 0)
+        {
+            continue;
+        }
+
+        auto* prop = reinterpret_cast<editor::QScriptedNodeProperty*>(_script_object.native()->GetAddressOfProperty(i));
         assert(prop != nullptr);
 
         // Initialize the property

@@ -17,7 +17,7 @@ namespace editor
         M_SCRIPT_TYPE(QScriptedGraph, "CGraph");
 
     public:
-        QScriptedGraph(asIScriptObject* object);
+        QScriptedGraph(editor::script::ScriptObject&& object);
         virtual ~QScriptedGraph() override;
 
         auto getScriptManager() const -> const auto* { return _script_manager; }

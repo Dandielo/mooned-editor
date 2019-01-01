@@ -1,21 +1,29 @@
 #pragma once
-#include "QProjectTreeNode.h"
+#include <project/models/QProjectTreeNode.h>
 
 namespace editor
 {
-    class QProject;
 
-    class QProjectTree : public QProjectTreeNode
-    {
-    public:
-        QProjectTree(QProject* project);
-        virtual ~QProjectTree() override;
+//! The project base class.
+class QProject;
 
-        QProject* project() const;
+//! The root node of a project tree.
+//! \note This tree root is owned by the represented QProject object.
+class ProjectTreeRoot : public ProjectTreeNode
+{
+public:
+    //! Creates a new tree root from a project object.
+    ProjectTreeRoot(QProject* prj) noexcept;
 
-        virtual QString toString() const override;
+    //! \returns The project which is represented by this tree root.
+    auto project() noexcept -> QProject* { return _project; }
+    auto project() const noexcept -> const QProject* { return _project; }
 
-    private:
-        QProject* _project;
-    };
-}
+    //! \returns a value for the given item data role.
+    auto value(Qt::ItemDataRole role) const noexcept -> QVariant override;
+
+private:
+    QProject* _project;
+};
+
+} // namespace editor

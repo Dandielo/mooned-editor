@@ -1,23 +1,21 @@
-#include "QProjectTree.h"
-#include "project/interfaces/QProject.h"
+#include <project/models/QProjectTree.h>
+#include <project/interfaces/QProject.h>
 
-editor::QProjectTree::QProjectTree(QProject* project)
-    : QProjectTreeNode{ nullptr }
-    , _project{ project }
+namespace editor
 {
+
+ProjectTreeRoot::ProjectTreeRoot(QProject* prj) noexcept
+    : ProjectTreeNode{ nullptr }
+    , _project{ prj }
+{ }
+
+auto ProjectTreeRoot::value(Qt::ItemDataRole role) const noexcept -> QVariant
+{
+    if (role == Qt::ItemDataRole::DisplayRole)
+    {
+        return _project->name();
+    }
+    return { };
 }
 
-editor::QProjectTree::~QProjectTree()
-{
-}
-
-editor::QProject* editor::QProjectTree::project() const
-{
-    return _project;
-}
-
-QString editor::QProjectTree::toString() const
-{
-    return _project->name();
-}
-
+} // namespace editor

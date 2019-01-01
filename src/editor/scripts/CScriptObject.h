@@ -1,23 +1,27 @@
 #pragma once
+#include <scripts/angelscript_new/object.h>
+
 #include <string>
 #include <unordered_map>
-#include "angelscript/as_interpreter.h"
 
-namespace Scripts
+namespace editor::script
 {
-	class CScriptObject
+    //! A base class for creating an interface between a native and script class.
+	class ScriptClass
 	{
 	public:
-        CScriptObject(asIScriptObject* obj);
-        virtual ~CScriptObject();
+        ScriptClass(ScriptObject&& object);
+        virtual ~ScriptClass() noexcept;
 
-        // Methods
-        asIScriptObject* ScriptObject() const;
+        //! \returns The script representation of the current object instance.
+        auto script_object() noexcept -> ScriptObject& { return _script_object; }
+
+        //! \returns The script representation of the current object instance.
+        auto script_object() const noexcept -> const ScriptObject& { return _script_object; }
 
     protected:
-        asIScriptFunction* GetScriptMethod(const char* name, bool cache = true);
-        void CallScriptMethod(const char* name);
+        asIScriptFunction* GetScriptMethod(const char* name, bool cache = true) const;
 
-        asIScriptObject* _script_object;
+        ScriptObject _script_object;
 	};
 }

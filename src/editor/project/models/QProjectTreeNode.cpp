@@ -1,58 +1,65 @@
-#include "QProjectTreeNode.h"
+#include <project/models/QProjectTreeNode.h>
 
+#include <algorithm>
 #include <cassert>
 
-editor::QProjectTreeNode::QProjectTreeNode(QProjectTreeNode* parent /*= nullptr*/)
+namespace editor
+{
+
+ProjectTreeNode::ProjectTreeNode(ProjectTreeNode* parent) noexcept
     : _parent{ parent }
-    , _childs{ }
-{
-}
+{ }
 
-editor::QProjectTreeNode::~QProjectTreeNode()
+auto editor::ProjectTreeNode::index() const noexcept -> size_t
 {
-    for (auto&& child : _childs)
-    {
-        delete child;
-    }
-}
-
-uint editor::QProjectTreeNode::index() const
-{
+    size_t result = 0;
     if (_parent)
     {
-        return _parent->_childs.indexOf(const_cast<QProjectTreeNode*>(this));
+        const auto& parent_childs = _parent->_childs;
+
+        // Get the position in the parent vector
+        result = std::distance(parent_childs.begin(), std::find_if(parent_childs.begin(), parent_childs.end(), [this](const auto& el)
+            {
+                // Search for an element with the same pointer value.
+                return el.get() == this;
+            }));
     }
-    return 0;
+    return result;
 }
 
-uint editor::QProjectTreeNode::childCount() const
+auto ProjectTreeNode::child(size_t child_index) noexcept -> ProjectTreeNode*
 {
-    return _childs.count();
+    assert(_childs.size() > child_index);
+
+    ProjectTreeNode* result = nullptr;
+    if (_childs.size() > child_index)
+    {
+        result = _childs.at(child_index).get();
+    }
+    return result;
 }
 
-QString editor::QProjectTreeNode::toString() const
+auto ProjectTreeNode::child(size_t child_index) const noexcept -> const ProjectTreeNode*
 {
-    return "{node}";
+    assert(_childs.size() > child_index);
+
+    ProjectTreeNode* result = nullptr;
+    if (_childs.size() > child_index)
+    {
+        result = _childs.at(child_index).get();
+    }
+    return result;
 }
 
-editor::QProjectTreeNode* editor::QProjectTreeNode::parent() const
+void ProjectTreeNode::add(std::unique_ptr<ProjectTreeNode> child_node) noexcept
 {
-    return _parent;
+    _childs.emplace_back(std::move(child_node));
 }
 
-editor::QProjectTreeNode* editor::QProjectTreeNode::child(uint index) const
+void ProjectTreeNode::remove(size_t child_index) noexcept
 {
-    return _childs.at(index);
+    assert(_childs.size() > child_index);
+    _childs.erase(std::next(_childs.begin(), child_index));
 }
 
-void editor::QProjectTreeNode::add(QProjectTreeNode* node)
-{
-    assert(!_childs.contains(node));
-    _childs.append(node);
-}
-
-void editor::QProjectTreeNode::remove(QProjectTreeNode* node)
-{
-    assert(_childs.contains(node));
-    _childs.remove(_childs.indexOf(node));
-}
+} // namespace editor

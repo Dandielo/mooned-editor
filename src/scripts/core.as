@@ -1,56 +1,56 @@
-abstract class CNode : INode 
+abstract class CNode : INode
 {
-    CNode() 
+    CNode()
     {
-        @m_Object = CNodeNative();
+        @_native_object = CNodeNative();
     }
 
     void OnCreate() { }
     void OnDestroy() { }
-    
+
     // Properties
-    string name 
-    { 
-        get { return m_Object.name; }
-        set { m_Object.name = value; }
+    string name
+    {
+        get { return _native_object.name; }
+        set { _native_object.name = value; }
     }
-    
-    string description 
-    { 
-        get { return m_Object.description; }
-        set { m_Object.description = value; }
+
+    string description
+    {
+        get { return _native_object.description; }
+        set { _native_object.description = value; }
     }
 
     // Methods
     void color(double r, double g, double b)
     {
-        m_Object.color(r, g, b);
+        _native_object.color(r, g, b);
     }
 
     void move(int x, int y)
     {
-        m_Object.move(x, y);
+        _native_object.move(x, y);
     }
 
-    private CNodeNative@ m_Object;
+    private CNodeNative@ _native_object;
 }
 
 abstract class CGraph : IGraph
 {
-    CGraph() 
+    CGraph()
     {
-        @m_Object = CGraphNative();
+        @_native_object = CGraphNative();
     }
 
-    string name 
-    { 
-        get { return m_Object.name; }
+    string name
+    {
+        get { return _native_object.name; }
     }
 
-    string title 
-    { 
-        get { return m_Object.title; }
-        set { m_Object.title = value; }
+    string title
+    {
+        get { return _native_object.title; }
+        set { _native_object.title = value; }
     }
 
     // Interface default implementations
@@ -63,24 +63,24 @@ abstract class CGraph : IGraph
     array<string> NodeQueries() { return array<string>(); }
 
     // Forwards
-    INode@ createNode(string type_name) 
-    { 
-        return m_Object.createNode(type_name);
-    } 
-
-    private CGraphNative@ m_Object;
-}
-
-abstract class CProject : IProject 
-{
-    CProject() 
+    INode@ createNode(string type_name)
     {
-        @m_Object = CProjectNative();
+        return _native_object.createNode(type_name);
     }
 
-    string name 
-    { 
-        get { return m_Object.name; }
+    private CGraphNative@ _native_object;
+}
+
+abstract class CProject : IProject
+{
+    CProject()
+    {
+        @_native_object = CProjectNative();
+    }
+
+    string name
+    {
+        get { return _native_object.name; }
     }
 
     void OnCreate() { }
@@ -92,31 +92,48 @@ abstract class CProject : IProject
     // Available element classes
     array<string> AvailableElements() { return array<string>(); }
 
-    private CProjectNative@ m_Object;
+    private CProjectNative@ _native_object;
 }
 
-abstract class CExporter : IExporter 
+abstract class CExporter : IExporter
 {
-    CExporter() 
+    CExporter()
     {
-        @m_Object = CExporterNative();
+        @_native_object = CExporterNative();
     }
 
-    void OnSerialize(IProject@) { }
+    void OnExportProject(IProject@) { }
+    void OnExportGraph(IGraph@, const string &in) { }
+    // void OnSerialize(INode@) { }
 
-    private CExporterNative@ m_Object;
+    void write(const string &in str) final
+    {
+        _native_object.write(str);
+    }
+
+    void writeln(const string &in str) final
+    {
+        _native_object.writeln(str);
+    }
+
+    void flush(const string &in file_name) final
+    {
+        _native_object.flush(file_name);
+    }
+
+    private CExporterNative@ _native_object;
 }
 
 abstract class CWorkspaceWindow : IWorkspaceWindow
 {
-    CWorkspaceWindow() 
-    { 
-        @m_Object = CWorkspaceWindowNative();
+    CWorkspaceWindow()
+    {
+        @_native_object = CWorkspaceWindowNative();
     }
 
     // Interface default implementations
     void OnCreate() { }
     void OnDestroy() { }
 
-    private CWorkspaceWindowNative@ m_Object;
+    private CWorkspaceWindowNative@ _native_object;
 }

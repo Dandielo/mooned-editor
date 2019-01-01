@@ -1,43 +1,68 @@
 #pragma once
-#include <QVector>
+#include <project/models/QProjectContextMenuHelper.h>
+
 #include <QAbstractItemModel>
-#include "QProjectContextMenuHelper.h"
+#include <QVector>
+
+#include <vector>
+#include <memory>
 
 namespace editor
 {
-    class QGraph;
-    class QProject;
-    class QProjectTree;
 
-    class QProjectModel : public QAbstractItemModel
-    {
-        Q_OBJECT;
+class QGraph;
+class QProject;
 
-    public:
-        QProjectModel(QTreeView* tree_view, QObject* parent = nullptr);
-        virtual ~QProjectModel() override;
+class ProjectTreeRoot;
 
-        void addProject(QProjectTree* project);
-        void removeProject(QProjectTree* project);
+//! Implements the QAbstractItemModel to visualize project trees in a QTreeView.
+//! \note This model allows to visualize more than one tree at a time.
+class QProjectModel : public QAbstractItemModel
+{
+    Q_OBJECT;
 
-        virtual int rowCount(const QModelIndex &parent) const override;
-        virtual int columnCount(const QModelIndex &parent) const override;
+public:
+    //! Create a new model for the given tree view and parent.
+    QProjectModel(QTreeView* tree_view, QObject* parent = nullptr);
 
-        virtual QModelIndex index(int row, int column, const QModelIndex &parent) const override;
-        virtual QModelIndex parent(const QModelIndex &child) const override;
+    //! Adds a project tree to the model.
+    void add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept;
 
-        virtual QVariant data(const QModelIndex &index, int role) const override;
-        virtual QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+    //! Removes a project tree from the model.
+    void remove_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept;
 
-        QProjectContextMenuHelper* contextMenuHelper() { return &_context_menu_helper; }
+    //! \returns The context menu helper object of this model.
+    auto context_menu_helper() noexcept -> QProjectContextMenuHelper& { return _context_menu_helper; }
+    auto context_menu_helper() const noexcept -> const QProjectContextMenuHelper& { return _context_menu_helper; }
 
-    public slots:
-        void projectTreeChanged(QProjectTree* tree);
+protected:
+    //////////////////////////////////////////////////////////////////////////
+    // Implementation of the QAbstractItemModel interface.
 
-    private:
-        QVector<QString> _sections;
-        QVector<QProjectTree*> _projects;
+    int rowCount(const QModelIndex &parent) const override;
+    int columnCount(const QModelIndex &parent) const override;
 
-        QProjectContextMenuHelper _context_menu_helper;
-    };
-}
+    QModelIndex index(int row, int column, const QModelIndex &parent) const override;
+    QModelIndex parent(const QModelIndex &child) const override;
+
+    QVariant data(const QModelIndex &index, int role) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+
+
+public slots:
+    //////////////////////////////////////////////////////////////////////////
+    // Definition of additional slots available to connect with this project.
+    void projectTreeChanged(ProjectTreeRoot* tree);
+
+private:
+    //! List of sections to be displayed in this model.
+    QVector<QString> _sections{ };
+
+    //! List of all projects to be displayed in this model.
+    std::vector<ProjectTreeRoot*> _projects{ };
+
+    //! Helper object with contextual actions.
+    QProjectContextMenuHelper _context_menu_helper;
+};
+
+} // namespace editor

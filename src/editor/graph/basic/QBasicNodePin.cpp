@@ -24,7 +24,7 @@ editor::QBasicNodePin::QBasicNodePin(QNode* parent)
 
 editor::QBasicNodePin::~QBasicNodePin()
 {
-    assert(_connections.empty());
+    //assert(_connections.empty());
 }
 
 bool editor::QBasicNodePin::canConnect(QNodePin* pin) const

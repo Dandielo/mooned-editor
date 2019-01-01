@@ -1,17 +1,21 @@
 #include "QScriptedGraphNode.h"
 #include "project/scripted/elements/QScriptedElementGraph.h"
 
-editor::QScriptedGraphNode::QScriptedGraphNode(QScriptedElementGraph* graph, QProjectTreeNode* parent /*= nullptr*/)
-    : QProjectTreeNode{ parent }
-    , _graph{ graph }
+namespace editor
 {
+
+ScriptedGraphNode::ScriptedGraphNode(QScriptedElementGraph* graph, ProjectTreeNode* parent)
+    : ProjectTreeNode{ parent }
+    , _graph_element{ graph }
+{ }
+
+auto ScriptedGraphNode::value(Qt::ItemDataRole role) const noexcept -> QVariant
+{
+    if (role == Qt::ItemDataRole::DisplayRole)
+    {
+        return _graph_element->displayText();
+    }
+    return { };
 }
 
-editor::QScriptedGraphNode::~QScriptedGraphNode()
-{
-}
-
-QString editor::QScriptedGraphNode::toString() const
-{
-    return _graph->displayText();
-}
+} // namespace editor

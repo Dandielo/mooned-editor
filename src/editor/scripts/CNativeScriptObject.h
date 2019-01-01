@@ -1,38 +1,46 @@
 #pragma once
 #include "CScriptObject.h"
 
+#include <scripts/angelscript/as_context_pool.h>
+#include <scripts/angelscript_new/method.h>
+
 #define M_SCRIPT_TYPE(type, name) \
 	friend class Scripts::CNativeScriptObject<##type>; \
 	static constexpr auto ClassName = name "Native"; \
 	static constexpr auto ScriptClassName = name; \
 	static void registerTypeInterface(asIScriptEngine* engine)
 
+
 namespace Scripts
 {
-    template<class T>
-    class CNativeScriptObject : public CScriptObject
-    {
-    public:
-        static void registerType(asIScriptEngine* engine);
 
-    protected:
-        CNativeScriptObject(asIScriptObject* object);
-        virtual ~CNativeScriptObject() override;
+using editor::script::ScriptObject;
 
-        void AddRef();
-        void Release();
+template<class T>
+class CNativeScriptObject : public editor::script::ScriptClass
+{
+public:
+    static void registerType(asIScriptEngine* engine);
+    static void registerTypeNoFactory(asIScriptEngine* engine);
 
-        static T* ObjectFactory();
+protected:
+    CNativeScriptObject(ScriptObject&& object);
+    virtual ~CNativeScriptObject() override;
 
-        template<class... Args>
-        void CallScriptMethod(const char* name, Args&&... args);
+    void AddRef();
+    void Release();
 
-    private:
-        asILockableSharedBool* m_IsDead;
-        int m_RefCount;
+    static T* ObjectFactory();
 
-        friend class CScriptManager;
-    };
+    template<class... Args>
+    void CallScriptMethod(const std::string& name, Args&&... args) const;
+
+private:
+    asILockableSharedBool* m_IsDead;
+    int m_RefCount;
+
+    friend class CScriptManager;
+};
 
     // Include the inline file
 #       include "CNativeScriptObject.inl"

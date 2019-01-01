@@ -4,46 +4,56 @@
 
 #include "angelscript/as_interpreter.h"
 
-using Scripts::AngelScript::AsScriptModule;
+//using Scripts::AngelScript::AsScriptModule;
 
 namespace Scripts
 {
 
-    class CScriptDatabase final
-    {
-    public:
-        CScriptDatabase();
-        ~CScriptDatabase() = default;
+//! Defines a 'database' like object which can be queried for various things.
+//! \note Queries to the database support annotated types and types with a parent.
+class ScriptDatabase final
+{
+public:
+    ScriptDatabase() noexcept;
+    ~ScriptDatabase() noexcept = default;
 
-        // Finds all types in the compiled module
-        void AddModule(AsScriptModule::ptr mod);
+    //! Extracts all data which can be stored from the given module.
+    void extract_module(editor::script::Module& mod) noexcept;
 
-        // Query functions 
-        std::vector<asITypeInfo*> QueryTypes(std::string query) const;
+    //! Queries the database for type objects and pushes the results into the given vector.
+    //! \returns true If the query was successful.
+    bool query_types(const std::string& query, std::vector<editor::script::Type>& results) const noexcept;
 
-        // Attribute functions 
-        std::string GetTypeAttr(asITypeInfo* type, std::string attribute) const;
-        std::string GetPropertyAttr(asITypeInfo* type, int index, std::string attribute) const;
+    //! Queries the database for type objects.
+    //! \returns A vector of type objects.
+    auto query_types(const std::string& query) const noexcept -> std::vector<editor::script::Type>;
 
-        // Pimpl like 
-        class CEntry;
-            
-    protected:
-        void ExtractTypes(AsScriptModule::ptr module);
-        void ExtractTypeProperties(AsScriptModule::ptr module, asITypeInfo* type);
+    // Returns the value of a given attribute.
+    auto get_attribute(editor::script::Type type, const std::string& attribute) const noexcept -> std::string;
 
-    private:
-        using entry_list = std::vector<std::shared_ptr<CEntry>>;
-        using type_map = std::unordered_map<std::string, asITypeInfo*>;
+    // Returns the value of a given attribute.
+    auto get_attribute(editor::script::Property propery, const std::string& attribute) const noexcept -> std::string;
 
-        using type_metadata_map = std::unordered_map<std::string, entry_list>;
-        using type_property_metadata_map = std::unordered_map<asITypeInfo*, std::vector<std::unordered_map<std::string, std::string>>>;
+    // Pimpl like
+    class CEntry;
 
-        // The database data
-        type_map m_Types;
+protected:
+    void extract_module_types(editor::script::Module& module) noexcept;
+    void extract_module_type_properties(editor::script::Module& module, const editor::script::Type& type) noexcept;
 
-        // Metadata maps
-        type_metadata_map m_TypeMetadata;
-        type_property_metadata_map m_TypePropMetadata;
-    };
+private:
+    using entry_list = std::vector<std::shared_ptr<CEntry>>;
+    using type_map = std::unordered_map<std::string, editor::script::Type>;
+
+    using type_metadata_map = std::unordered_map<std::string, entry_list>;
+    using type_property_metadata_map = std::unordered_map<int, std::vector<std::unordered_map<std::string, std::string>>>;
+
+    // The database data
+    type_map _types{ };
+
+    // Metadata maps
+    type_metadata_map _type_metadata{ };
+    type_property_metadata_map _property_metadata{ };
+};
+
 }

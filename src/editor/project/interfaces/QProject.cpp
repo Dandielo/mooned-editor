@@ -7,133 +7,124 @@
 #include <QJsonArray>
 #include <QJsonValue>
 
+#include <QPointer>
 #include <QFileInfo>
 #include <QDebug>
 #include <cassert>
 
 static const char* ProjectFileExtension = ".mprj";
 
-editor::QProject::QProject()
+namespace editor
+{
+
+QProject::QProject(QFileInfo project_file) noexcept
     : QObject{ nullptr }
-    , _name{ "" }
-    , _filename{ "" }
-    , _location{ "" }
-    , _elements{}
+    , _fileinfo{ std::move(project_file) }
+    , _settings{ _fileinfo.absoluteDir() }
 {
+    _settings.set_default("project.display_name", name());
+    _settings.set_default("export.location", QDir::cleanPath(location().absoluteFilePath("exported")));
 }
 
-editor::QProject::~QProject()
+bool QProject::load() noexcept
 {
-    for (auto* element : _elements)
-    {
-        delete element;
-    }
-    _elements.clear();
-}
-
-bool editor::QProject::isValid() const
-{
-    return !_name.isEmpty();
-}
-
-bool editor::QProject::open(QFileInfo file_info)
-{
-    // Set the file name and location values
-    _filename = file_info.fileName();
-    _location = file_info.absoluteDir();
-
     // Check if the values are valid #todo Is it good to store these vales so we can later create a 'new' project when this function fails?
-    if (!file_info.exists())
+    if (!_fileinfo.exists())
     {
         return false;
     }
 
-    // Read the project data
-    QJsonObject json_root = loadProjectFile(file_info).object();
-    onLoad(json_root);
+    QFile project_file{ _fileinfo.absoluteFilePath() };
+    project_file.open(QFile::OpenModeFlag::ReadWrite);
 
-    _name = json_root.value("name").toString();
-    _type = json_root.value("type").toString();
+    auto project_document = QJsonDocument::fromJson(project_file.readAll());
+    if (!project_document.isObject())
+    {
+        return false;
+    }
+
+    onLoad(project_document.object());
     return true;
 }
 
-bool editor::QProject::save()
+bool QProject::save() const noexcept
 {
-    if (!isValid())
+    QFile project_file{ _fileinfo.absoluteFilePath() };
+    project_file.open(QFile::OpenModeFlag::WriteOnly);
+
+    if (!project_file.isOpen())
     {
         return false;
     }
 
-    // Create the JSon document
+    // Create the JSon root object
     QJsonObject json_root;
     onSave(json_root);
 
-    json_root.insert("name", _name);
+    json_root.insert("name", name());
+    json_root.insert("class", class_name());
     json_root.insert("version", "alpha");
-    json_root.insert("type", _type);
 
+    // Create the JSon document.
     QJsonDocument json_project(json_root);
 
-    // Save the file
-    QFileInfo file_info{ _location, _filename };
-    QFile project_file{ file_info.absoluteFilePath() };
-
-    project_file.open(QFile::Text | QFile::WriteOnly);
+    // Write the document to file
     project_file.write(json_project.toJson());
     project_file.close();
     return true;
 }
 
-bool editor::QProject::hasElement(QString name) const
+bool QProject::add_element(QProjectElementPtr element) noexcept
 {
-    return _elements.count(name) > 0;
+    assert(element->parent() == this); // We want an element to be without a parent when it's added!
+
+    // Set the new parent object #todo maybe create objects with some kind of factory function? (again)
+    //element->setParent(this);
+
+    // Try remove any other existing element
+    auto element_identifier = element->name();
+    bool element_found = contains_element(element_identifier);
+    if (!element_found)
+    {
+        _elements.insert(std::move(element_identifier), std::move(element));
+    }
+
+    // Set the element at the right place
+    return element_found;
 }
 
-bool editor::QProject::hasElement(QProjectElement* element)
+void QProject::remove_element(const QString& identifier) noexcept
 {
-    return hasElement(element->name());
+    if (_elements.contains(identifier))
+    {
+        (*_elements.find(identifier))->deleteLater();
+        _elements.remove(identifier);
+    }
 }
 
-void editor::QProject::addElement(QProjectElement* element)
+auto QProject::get_element(const QString& identifier) noexcept -> QProjectElementPtr
 {
-    assert(!hasElement(element));
-    _elements.insert(element->name(), element);
+    auto element_it = _elements.find(identifier);
+    if (element_it != _elements.end())
+    {
+        return *element_it;
+    }
+    return nullptr;
 }
 
-void editor::QProject::removeElement(QProjectElement* element)
+auto QProject::get_element(const QString& identifier) const noexcept -> const QProjectElementPtr
 {
-    assert(hasElement(element));
-    _elements.remove(element->name());
+    auto element_it = _elements.find(identifier);
+    if (element_it != _elements.end())
+    {
+        return *element_it;
+    }
+    return nullptr;
 }
 
-QString editor::QProject::name() const
+bool QProject::contains_element(const QString& identifier) const noexcept
 {
-    return _name;
+    return _elements.contains(identifier);
 }
 
-QString editor::QProject::type() const
-{
-    return _type;
-}
-
-QString editor::QProject::filename() const
-{
-    return _filename;
-}
-
-QDir editor::QProject::location() const
-{
-    return _location;
-}
-
-// Free function
-QJsonDocument editor::loadProjectFile(QFileInfo path)
-{
-    QFile project_file{ path.absoluteFilePath() };
-    project_file.open(QFile::Text | QFile::ReadOnly);
-    QByteArray file_data = project_file.readAll();
-    project_file.close();
-
-    // Parse the given document
-    return QJsonDocument::fromJson(file_data);
-}
+} // namespace editor

@@ -1,10 +1,330 @@
-#include "as_script_module.h"
+#include <scripts/angelscript/as_script_module.h>
+#include <scripts/angelscript/as_interpreter.h>
+#include <scripts/angelscript_new/base.h>
+#include <scripts/angelscript_new/property.h>
+
+#include "scripts/angelscript_new/private.h"
+
+#include <scriptbuilder.h>
 
 #include <QDebug>
-#include <scriptbuilder.h>
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+
+namespace editor::script
+{
+
+class ModuleLoader
+{
+public:
+    ModuleLoader() noexcept = default;
+    virtual ~ModuleLoader() noexcept = default;
+
+    //! Creates a new module with the given name.
+    virtual auto start_new_module(const std::string& name) noexcept -> asIScriptModule* = 0;
+
+    //! Adds the file as a script section into the module.
+    virtual void add_section_from_file(const std::filesystem::path& file) noexcept = 0;
+
+    //! Adds some data as a script section into the module.
+    virtual void add_section_from_memory(const std::string& name, const std::string& data) noexcept = 0;
+
+    //! Finishes the module creation.
+    virtual void finalize_module() noexcept = 0;
+
+    //! The pointer type
+    using ptr_t = std::unique_ptr<ModuleLoader, void(*)(ModuleLoader*) noexcept>;
+
+    virtual auto to_passive_loader() noexcept -> ptr_t = 0;
+
+public:
+    //! \returns The metadata string for the given Type if any is found in the module loader.
+    virtual auto get_metadata(const Type& type) const noexcept -> std::string = 0;
+
+    //! \returns The metadata string for the given Property if any is found in the module loader.
+    virtual auto get_metadata(const Property& prop) const noexcept -> std::string = 0;
+
+public:
+    //! Module loader deleter.
+    static void deleter_function(ModuleLoader* loader) noexcept
+    {
+        delete loader;
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+class ActiveModuleLoader;
+
+class PassiveModuleLoader : public ModuleLoader
+{
+public:
+    PassiveModuleLoader(std::unique_ptr<CScriptBuilder> builder)
+        : _script_builder{ std::move(builder) }
+    { }
+
+    virtual ~PassiveModuleLoader() noexcept = default;
+
+    auto start_new_module(const std::string& name) noexcept -> asIScriptModule* override { return _script_builder->GetModule(); }
+
+    void add_section_from_file(const std::filesystem::path& file) noexcept { }
+
+    void add_section_from_memory(const std::string& name, const std::string& data) noexcept { }
+
+    void finalize_module() noexcept override { }
+
+    auto to_passive_loader() noexcept -> ptr_t override
+    {
+        return ptr_t{ new PassiveModuleLoader{ std::move(_script_builder) }, &deleter_function };
+    }
+
+public:
+    //! \returns The metadata string for the given Type if any is found in the module loader.
+    auto get_metadata(const Type& type) const noexcept -> std::string override
+    {
+        std::string result;
+        if (_script_builder)
+        {
+            result = _script_builder->GetMetadataStringForType(type.native()->GetTypeId());
+        }
+        return result;
+    }
+
+    //! \returns The metadata string for the given Property if any is found in the module loader.
+    auto get_metadata(const Property& prop) const noexcept -> std::string override
+    {
+        std::string result;
+        if (_script_builder)
+        {
+            result = _script_builder->GetMetadataStringForTypeProperty(prop.owning_type().native()->GetTypeId(), prop.index());
+        }
+        return result;
+    }
+
+private:
+    std::unique_ptr<CScriptBuilder> _script_builder;
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+class ActiveModuleLoader : public ModuleLoader
+{
+public:
+    ActiveModuleLoader(Engine& engine) noexcept
+        : ModuleLoader{ }
+        , _script_engine{ engine }
+        , _script_builder{ std::make_unique<CScriptBuilder>() }
+    {
+        _script_builder->SetIncludeCallback(reinterpret_cast<INCLUDECALLBACK_t>(&angelscript_include_callback), this);
+    }
+
+    ~ActiveModuleLoader() noexcept override = default;
+
+    //! Creates a new module with the given name.
+    auto start_new_module(const std::string& name) noexcept -> asIScriptModule* override
+    {
+        _script_builder->StartNewModule(_script_engine.native(), name.c_str());
+        return _script_builder->GetModule();
+    }
+
+    //! Adds the file as a script section into the module.
+    void add_section_from_file(const std::filesystem::path& file) noexcept override
+    {
+        _script_builder->AddSectionFromFile(file.generic_string().c_str());
+    }
+
+    //! Adds some data as a script section into the module.
+    void add_section_from_memory(const std::string& name, const std::string& data) noexcept override
+    {
+        _script_builder->AddSectionFromMemory(name.c_str(), data.c_str());
+    }
+
+    //! Builds the module.
+    void finalize_module() noexcept override
+    {
+        [[maybe_unused]] bool result = _script_builder->BuildModule() == asSUCCESS;
+        assert(result);
+    }
+
+    //! Creates a passive loader from an active loader.
+    auto to_passive_loader() noexcept -> ptr_t override
+    {
+        return ptr_t{ new PassiveModuleLoader{ std::move(_script_builder) }, &deleter_function };
+    }
+
+public:
+    //! \returns The metadata string for the given Type if any is found in the module loader.
+    auto get_metadata(const Type& type) const noexcept -> std::string override
+    {
+        std::string result;
+        if (_script_builder)
+        {
+            result = _script_builder->GetMetadataStringForType(type.id().value);
+        }
+        return result;
+    }
+
+    //! \returns The metadata string for the given Property if any is found in the module loader.
+    auto get_metadata(const Property& prop) const noexcept -> std::string override
+    {
+        std::string result;
+        if (_script_builder)
+        {
+            result = _script_builder->GetMetadataStringForTypeProperty(prop.owning_type().id().value, prop.index());
+        }
+        return result;
+    }
+
+public:
+    //! Resolves the given include given the source file.
+    auto resolve_include(const std::filesystem::path& include, const std::filesystem::path& source_file) const noexcept -> std::filesystem::path
+    {
+        namespace fs = std::filesystem;
+
+        if (include.is_absolute())
+        {
+            return include;
+        }
+
+        // Check against the current source file...
+        fs::path result = source_file.parent_path() / include;
+        if (fs::is_regular_file(result))
+        {
+            return result;
+        }
+
+        // Check against the current working directory...
+        result = _current_working_dir / include;
+        if (fs::is_regular_file(result))
+        {
+            return result;
+        }
+
+        return{ };
+    }
+
+protected:
+    //! Callback function for #include statements in AngelScript
+    static void angelscript_include_callback(const char* include, const char* source_file, CScriptBuilder* script_builder, ActiveModuleLoader* script_loader) noexcept;
+
+private:
+    Engine& _script_engine;
+    std::unique_ptr<CScriptBuilder> _script_builder;
+
+    // Get the current working directory
+    const std::filesystem::path _current_working_dir{ std::filesystem::current_path() };
+
+    // Friends
+    friend class PassiveModuleLoader;
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+void ActiveModuleLoader::angelscript_include_callback(const char* include, const char* source_file, CScriptBuilder* script_builder, ActiveModuleLoader* script_loader) noexcept
+{
+    namespace fs = std::filesystem;
+
+    fs::path include_path = script_loader->resolve_include(include, source_file);
+
+    if (!fs::is_regular_file(include_path))
+    {
+        qDebug("[%s] Include file not found: '%s', from: '%s'", "AngelScript::Module", include_path.generic_string().c_str(), source_file);
+        std::exit(1);
+        return;
+    }
+
+    qDebug("[%s] Included: '%s', from: '%s'", "AngelScript::Module", include_path.generic_string().c_str(), source_file);
+    script_loader->add_section_from_file(include_path);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+Module::Module(ConstructorData<Module> data) noexcept
+    : _script_module{ data.module }
+    , _module_loader{ std::move(data.loader) }
+{ }
+
+void Module::load_file(const std::filesystem::path& file) noexcept
+{
+    _module_loader->add_section_from_file(file);
+}
+
+void Module::load_data(const std::string& name, const std::string& data) noexcept
+{
+    _module_loader->add_section_from_memory(name, data);
+}
+
+void Module::finalize() noexcept
+{
+    _module_loader->finalize_module();
+    _module_loader = _module_loader->to_passive_loader();
+}
+
+auto Module::types() const noexcept -> Types
+{
+    return Types{ _script_module, _script_module->GetObjectTypeCount() };
+}
+
+auto Module::type_by_name(const std::string& name) const noexcept -> Type
+{
+    Type result;
+    for (const auto& type : types())
+    {
+        if (type.name() == name)
+        {
+            result = type;
+            break;
+        }
+    }
+    return result;
+}
+
+auto Module::get_metadata(const Type& type) const noexcept -> std::string
+{
+    return _module_loader->get_metadata(type);
+}
+
+auto Module::get_metadata(const Property& prop) const noexcept -> std::string
+{
+    return _module_loader->get_metadata(prop);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+auto Module::get(Engine& engine, const std::string& name, Policy policy /*= Policy::CreateIfMissing*/) noexcept -> Module
+{
+    asIScriptModule* script_module = nullptr;
+    ModuleLoader::ptr_t module_loader = ModuleLoader::ptr_t{ new PassiveModuleLoader{ nullptr }, &ModuleLoader::deleter_function };
+
+    if (policy != Policy::AlwaysCreate)
+    {
+        script_module = engine.native()->GetModule(name.c_str(), asGM_ONLY_IF_EXISTS);
+
+        if (script_module == nullptr && policy == Policy::CreateIfMissing)
+        {
+            policy = Policy::AlwaysCreate;
+        }
+    }
+
+    if (policy == Policy::AlwaysCreate)
+    {
+        module_loader = ModuleLoader::ptr_t{ new ActiveModuleLoader{ engine }, &ModuleLoader::deleter_function };
+        script_module = module_loader->start_new_module(name);
+    }
+
+    return ConstructorData<Module>{ script_module, std::move(module_loader) };
+}
+
+auto Module::find(const Engine& engine, const std::string& name) noexcept -> Module
+{
+    asIScriptModule* script_module = const_cast<asIScriptEngine*>(engine.native())->GetModule(name.c_str(), asGM_ONLY_IF_EXISTS);
+    return ConstructorData<Module>{ script_module, std::unique_ptr<ModuleLoader, void(*)(ModuleLoader*) noexcept>(new PassiveModuleLoader{ nullptr }, &ModuleLoader::deleter_function) };
+}
+
+} // namespace editor::script
+
+#if 0
 
 using namespace ::Scripts::AngelScript;
 namespace stdfs = std::experimental::filesystem::v1;
@@ -133,3 +453,4 @@ void Scripts::AngelScript::AsScriptModule::pop_include_directory()
     m_IncludeStack.pop();
 }
 
+#endif

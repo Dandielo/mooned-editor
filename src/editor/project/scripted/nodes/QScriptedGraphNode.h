@@ -1,18 +1,23 @@
 #pragma once
-#include "project/models/QProjectTreeNode.h"
+#include <project/models/QProjectTreeNode.h>
 
 namespace editor
 {
-    class QScriptedElementGraph;
-    class QScriptedGraphNode : public editor::QProjectTreeNode
-    {
-    public:
-        QScriptedGraphNode(QScriptedElementGraph* graph, QProjectTreeNode* parent);
-        virtual ~QScriptedGraphNode();
 
-        virtual QString toString() const override;
+//! The project element class.
+class QScriptedElementGraph;
 
-    protected:
-        QScriptedElementGraph* _graph;
-    };
-}
+//! The tree node class representing a scripted graph project element.
+class ScriptedGraphNode : public editor::ProjectTreeNode
+{
+public:
+    ScriptedGraphNode(QScriptedElementGraph* graph, ProjectTreeNode* parent);
+
+    //! \returns A value for the given item data role.
+    auto value(Qt::ItemDataRole role) const noexcept -> QVariant override;
+
+protected:
+    QScriptedElementGraph* _graph_element;
+};
+
+} // namespace editor

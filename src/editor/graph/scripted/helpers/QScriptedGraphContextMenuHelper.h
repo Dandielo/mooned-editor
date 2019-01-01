@@ -37,6 +37,6 @@ namespace editor
 
     private:
         QScriptedGraph* _graph;
-        QVector<asITypeInfo*> _node_types;
+        QVector<editor::script::Type> _node_types;
     };
 }

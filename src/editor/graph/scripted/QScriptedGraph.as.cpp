@@ -5,7 +5,7 @@ using editor::QScriptedGraph;
 
 asIScriptObject* asGraphCreateNodeProxy(QScriptedGraph* wks, std::string nodeclass)
 {
-    auto* node = wks->newScriptNode(QString::fromStdString(nodeclass))->ScriptObject();
+    auto* node = wks->newScriptNode(QString::fromStdString(nodeclass))->script_object().native();
     node->AddRef();
     return node;
 }
