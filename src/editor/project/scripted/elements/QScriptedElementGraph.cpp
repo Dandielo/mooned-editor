@@ -10,31 +10,29 @@
 #include <QJsonValue>
 
 
-editor::QScriptedElementGraph::QScriptedElementGraph(QScriptedProject* project, QString classname, QString name)
-    : QProjectElement{ project }
-    , _graph_serializer{ }
-    , _script_manager{ nullptr }
-    , _graph{ nullptr }
-    , _classname{ classname }
-    , _name{ name }
+namespace editor
 {
-}
 
-editor::QScriptedElementGraph::~QScriptedElementGraph()
-{
-}
+QScriptedElementGraph::QScriptedElementGraph(QScriptedProject* project, QString classname, QString name)
+    : QProjectElement{ project, project->location().filePath("graphs/" + name.toLower() + "_" + classname.toLower() + ".mgraph") }
+    , _class_name{ std::move(classname) }
+{ }
 
-void editor::QScriptedElementGraph::initialize(Scripts::CScriptManager* script_manager)
+QScriptedElementGraph::QScriptedElementGraph(QProjectElement* parent, QString classname, QFileInfo graph_file) noexcept
+    : QProjectElement{ parent, graph_file }
+    , _class_name{ std::move(classname) }
+{ }
+
+void QScriptedElementGraph::initialize(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
-    _graph_serializer.initialize(script_manager);
 
-    _graph = _script_manager->CreateObject<editor::QScriptedGraph, 1>(_classname.toLocal8Bit().data());
+    _graph = _script_manager->create_object(_class_name.toStdString(), editor::script::FactoryUserdata<QScriptedGraph>{ });
     _graph->initialize(_script_manager);
-    _graph->setWindowTitle(_name);
+    _graph->setWindowTitle(value(Qt::ItemDataRole::DisplayRole).toString());
 }
 
-void editor::QScriptedElementGraph::shutdown()
+void QScriptedElementGraph::shutdown()
 {
     if (nullptr != _graph)
     {
@@ -43,44 +41,38 @@ void editor::QScriptedElementGraph::shutdown()
     }
 }
 
-QString editor::QScriptedElementGraph::name() const
+void QScriptedElementGraph::save() const noexcept
 {
-    return QString("%1::%2").arg(_classname, _name);
-}
-
-QString editor::QScriptedElementGraph::displayText() const
-{
-    return QString("%1 { %2 }").arg(_name, _classname);
-}
-
-void editor::QScriptedElementGraph::save()
-{
-    _project->location().mkdir("graphs");
-
-    QFile file(fileLocation());
+    QFile file{ fileinfo().absoluteFilePath() };
     file.open(QFile::Text | QFile::WriteOnly);
 
     if (file.isOpen())
     {
-        _graph_serializer.serialize(&file, _graph);
+        QScriptedGraphSerializer{}.serialize(&file, _graph);
         file.close();
     }
 }
 
-void editor::QScriptedElementGraph::load()
+void QScriptedElementGraph::load() noexcept
 {
-    QFile file(fileLocation());
+    QString path = fileinfo().absoluteFilePath();
+    QFile file{ path };
     file.open(QFile::Text | QFile::ReadOnly);
 
     if (file.isOpen())
     {
-        _graph_serializer.deserialize(&file, _graph);
+        QScriptedGraphSerializer{}.deserialize(&file, _graph);
         file.close();
     }
 }
 
-QString editor::QScriptedElementGraph::fileLocation() const
+auto QScriptedElementGraph::value(Qt::ItemDataRole role) const noexcept -> QVariant
 {
-    return _project->location().absolutePath() + "/graphs/" + _name.toLower() + "_" + _classname.toLower() + ".mgraph";
+    if (role == Qt::ItemDataRole::DisplayRole)
+    {
+        return QString{ "%1 {%2}" }.arg(name(), _class_name);
+    }
+    return { };
 }
 
+} // namespace editor

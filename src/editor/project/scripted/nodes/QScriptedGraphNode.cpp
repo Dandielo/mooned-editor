@@ -11,11 +11,7 @@ ScriptedGraphNode::ScriptedGraphNode(QScriptedElementGraph* graph, ProjectTreeNo
 
 auto ScriptedGraphNode::value(Qt::ItemDataRole role) const noexcept -> QVariant
 {
-    if (role == Qt::ItemDataRole::DisplayRole)
-    {
-        return _graph_element->displayText();
-    }
-    return { };
+    return _graph_element->value(role);
 }
 
 } // namespace editor

@@ -1,7 +1,9 @@
 #pragma once
 #include <interfaces/QWorkspace.h>
 #include <project/basic/QProjectSettings.h>
+#include <project/interfaces/QProjectElement.h>
 
+#include <QVersionNumber>
 #include <QObject>
 #include <QDir>
 
@@ -9,8 +11,6 @@ class QEditorMainWindow;
 
 namespace editor
 {
-
-class QProject;
 
 using TProjectFactory = editor::QProject*(*)(const QString& t, const QString& n, const QString& f, void* ud);
 
@@ -20,11 +20,9 @@ struct SProjectTypeEntry
     void* userdata;
 };
 
-class QProjectElement;
-
 //! The base class for all project types in this editor application.
 //! \note Creating a QProject object does always create a valid object.
-class QProject : public QObject
+class QProject : public QProjectElement
 {
     Q_OBJECT;
 
@@ -41,24 +39,19 @@ public:
     //! \returns The projects class name.
     virtual auto class_name() const noexcept -> QString = 0;
 
-    //! \returns The project file info.
-    auto fileinfo() const noexcept -> const QFileInfo& { return _fileinfo; }
-
-    //! \returns The project location.
-    auto location() const noexcept -> QDir { return _fileinfo.absoluteDir(); }
-
-    //! \returns The project name.
-    auto name() const noexcept -> QString { return _fileinfo.baseName(); }
+    //! \returns The projects current version.
+    virtual auto version() const noexcept -> QVersionNumber = 0;
 
     //! \returns The project settings object.
     auto settings() noexcept -> QProjectSettings& { return _settings; }
     auto settings() const noexcept -> const QProjectSettings& { return _settings; }
 
     //! Tries to load project information for associated the project file.
-    bool load() noexcept;
+    void load() noexcept override;
 
     //! Tries to save project information into associated the project file.
-    bool save() const noexcept;
+    void save() const noexcept override;
+
 
 public:
     //! Alias for project element pointers.
@@ -88,6 +81,13 @@ public:
     auto elements() noexcept -> QMap<QString, QProjectElementPtr>& { return _elements; }
     auto elements() const noexcept -> const QMap<QString, QProjectElementPtr>& { return _elements; }
 
+private:
+    //////////////////////////////////////////////////////////////////////////
+    // Implements the QProjectElement::project methods.
+    auto project() noexcept -> QProject* override { return this; }
+    auto project() const noexcept -> const QProject* override { return this; }
+
+
 public:
     virtual void openElement(QString name) = 0;
     virtual void saveElement(QString name) = 0;
@@ -99,12 +99,9 @@ public slots:
 
 protected:
     virtual void onSave(QJsonObject& root) const = 0;
-    virtual void onLoad(const QJsonObject& root) = 0;
+    virtual void onLoad(const QJsonObject& root, const QVersionNumber&) = 0;
 
 private:
-    //! The project file of this project.
-    QFileInfo _fileinfo;
-
     //! All project settings values.
     QProjectSettings _settings;
 

@@ -35,7 +35,7 @@ void QScriptedProjectExporter::export_project_element(QProjectElement* graph) co
     auto* const scripted_graph_element = dynamic_cast<editor::QScriptedElementGraph*>(graph);
     if (scripted_graph_element)
     {
-        CallScriptMethod("OnExportGraph", scripted_graph_element->graph()->script_object(), scripted_graph_element->graphName().toStdString());
+        CallScriptMethod("OnExportGraph", scripted_graph_element->graph()->script_object(), scripted_graph_element->name().toStdString());
     }
 }
 

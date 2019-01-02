@@ -46,11 +46,12 @@ static void loadProjectElement(editor::QProjectElement* element, Scripts::CScrip
 
 static void saveProjectElement(QJsonObject& graph_object, editor::QProjectElement* element)
 {
+    QProject* project = element->project();
     auto* graph = dynamic_cast<editor::QScriptedElementGraph*>(element);
     if (nullptr != graph)
     {
-        graph_object.insert("name", graph->graphName());
-        graph_object.insert("class", graph->className());
+        graph_object.insert("file", project->location().relativeFilePath(element->fileinfo().absoluteFilePath()));
+        graph_object.insert("class", graph->class_name());
         graph->save();
     }
     else
@@ -64,7 +65,7 @@ auto findProjectElementByDisplayText(QMap<QString, QProject::QProjectElementPtr>
     QProject::QProjectElementPtr result;
     for (const auto& element : elements)
     {
-        if (element->displayText() == text)
+        if (element->value(Qt::ItemDataRole::DisplayRole).toString() == text)
         {
             result = element;
             break;
@@ -84,6 +85,15 @@ QScriptedProject::QScriptedProject(editor::script::ScriptObject&& object, QFileI
 auto editor::QScriptedProject::class_name() const noexcept -> QString
 {
     return _script_class;
+}
+
+auto editor::QScriptedProject::value(Qt::ItemDataRole role) const noexcept -> QVariant
+{
+    if (role == Qt::ItemDataRole::DisplayRole)
+    {
+        return settings().get("project.display_name");
+    }
+    return { };
 }
 
 } // namespace editor
@@ -201,12 +211,40 @@ void editor::QScriptedProject::onSave(QJsonObject& root) const
     root.insert("graphs", graphs_array);
 }
 
-void editor::QScriptedProject::onLoad(const QJsonObject& root)
+void editor::QScriptedProject::onLoad(const QJsonObject& root, const QVersionNumber& loaded_ver)
 {
     if (!root.contains("graphs"))
     {
         return;
     }
+
+    // Helper function which will chose the right loader between different project versions.
+    std::function<void(const QJsonObject&)> element_loader;
+
+    if (loaded_ver >= version())
+    {
+        element_loader = [&](const QJsonObject& element)
+        {
+            QFileInfo graph_file = location().filePath(element.value("file").toString());
+            QString graph_class = element.value("class").toString();
+
+            add_element(new QScriptedElementGraph{ this, graph_class, graph_file });
+        };
+    }
+    else // The old 'alpha' version loader.
+    {
+        element_loader = [&](const QJsonObject& element)
+        {
+            QString graph_name = element.value("name").toString();
+            QString graph_class = element.value("class").toString();
+
+            if (!graph_name.isEmpty() && !graph_class.isEmpty())
+            {
+                addGraph(graph_class, graph_name);
+            }
+        };
+    }
+
 
     QJsonArray graphs_array = root.value("graphs").toArray();
 
@@ -215,15 +253,9 @@ void editor::QScriptedProject::onLoad(const QJsonObject& root)
     {
         QJsonValue graph_value = graphs_array.at(i);
         assert(graph_value.isObject());
-        QJsonObject graph_object = graph_value.toObject();
 
-        QString graph_name = graph_object.value("name").toString();
-        QString class_name = graph_object.value("class").toString();
-
-        if (!graph_name.isEmpty() && !class_name.isEmpty())
-        {
-            addGraph(class_name, graph_name);
-        }
+        // Run the loader
+        element_loader(graph_value.toObject());
     }
 }
 

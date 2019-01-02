@@ -28,7 +28,7 @@ CScriptManager::CScriptManager()
     // Built-in types
     editor::QScriptedNodeProperty::registerType(script_engine);
     editor::QScriptedNode::registerType(script_engine);
-    editor::QScriptedGraph::registerType(script_engine);
+    editor::QScriptedGraph::registerTypeNoFactory(script_engine);
     editor::QScriptedProject::registerTypeNoFactory(script_engine);
     editor::QScriptedProjectExporter::registerType(script_engine);
     QScriptedWorkspaceWindow::registerType(script_engine);

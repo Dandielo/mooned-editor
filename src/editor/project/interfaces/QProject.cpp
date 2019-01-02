@@ -12,49 +12,57 @@
 #include <QDebug>
 #include <cassert>
 
-static const char* ProjectFileExtension = ".mprj";
-
 namespace editor
 {
 
 QProject::QProject(QFileInfo project_file) noexcept
-    : QObject{ nullptr }
-    , _fileinfo{ std::move(project_file) }
-    , _settings{ _fileinfo.absoluteDir() }
+    : QProjectElement{ nullptr, std::move(project_file) }
+    , _settings{ location() }
 {
     _settings.set_default("project.display_name", name());
     _settings.set_default("export.location", QDir::cleanPath(location().absoluteFilePath("exported")));
 }
 
-bool QProject::load() noexcept
+void QProject::load() noexcept
 {
     // Check if the values are valid #todo Is it good to store these vales so we can later create a 'new' project when this function fails?
-    if (!_fileinfo.exists())
+    if (!fileinfo().exists())
     {
-        return false;
+        return;
     }
 
-    QFile project_file{ _fileinfo.absoluteFilePath() };
+    QFile project_file{ fileinfo().absoluteFilePath() };
     project_file.open(QFile::OpenModeFlag::ReadWrite);
 
     auto project_document = QJsonDocument::fromJson(project_file.readAll());
     if (!project_document.isObject())
     {
-        return false;
+        return;
     }
 
-    onLoad(project_document.object());
-    return true;
+    // Assume we load always the latest version
+    QVersionNumber loaded_version = version();
+
+    // Load the actual project version from file.
+    auto json_root = project_document.object();
+    if (json_root.contains("version"))
+    {
+        loaded_version = QVersionNumber::fromString(json_root.value("version").toString());
+    }
+
+    // Continue with the loading
+    onLoad(json_root, loaded_version);
+    return;
 }
 
-bool QProject::save() const noexcept
+void QProject::save() const noexcept
 {
-    QFile project_file{ _fileinfo.absoluteFilePath() };
+    QFile project_file{ fileinfo().absoluteFilePath() };
     project_file.open(QFile::OpenModeFlag::WriteOnly);
 
     if (!project_file.isOpen())
     {
-        return false;
+        return;
     }
 
     // Create the JSon root object
@@ -63,7 +71,7 @@ bool QProject::save() const noexcept
 
     json_root.insert("name", name());
     json_root.insert("class", class_name());
-    json_root.insert("version", "alpha");
+    json_root.insert("version", version().toString());
 
     // Create the JSon document.
     QJsonDocument json_project(json_root);
@@ -71,7 +79,7 @@ bool QProject::save() const noexcept
     // Write the document to file
     project_file.write(json_project.toJson());
     project_file.close();
-    return true;
+    return;
 }
 
 bool QProject::add_element(QProjectElementPtr element) noexcept

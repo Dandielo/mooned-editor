@@ -19,24 +19,10 @@
 #include <QDebug>
 #include <cassert>
 
-editor::QScriptedGraphSerializer::QScriptedGraphSerializer()
-    : QGraphSerializer{ }
-    , _script_manager{ nullptr }
+namespace editor
 {
 
-}
-
-editor::QScriptedGraphSerializer::~QScriptedGraphSerializer()
-{
-    _script_manager = nullptr;
-}
-
-void editor::QScriptedGraphSerializer::initialize(Scripts::CScriptManager* script_manager)
-{
-    _script_manager = script_manager;
-}
-
-bool editor::QScriptedGraphSerializer::serialize(QIODevice* io, QGraph* graph)
+bool QScriptedGraphSerializer::serialize(QIODevice* io, const QGraph* graph) const noexcept
 {
     QJsonArray json_node_array;
 
@@ -118,7 +104,7 @@ bool editor::QScriptedGraphSerializer::serialize(QIODevice* io, QGraph* graph)
     return true;
 }
 
-bool editor::QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_graph)
+bool QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_graph) noexcept
 {
     QByteArray data = io->readAll();
     QScriptedGraph* graph = static_cast<QScriptedGraph*>(basic_graph);
@@ -166,7 +152,7 @@ bool editor::QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_
 
     auto it = nodes.begin();
     auto end = nodes.end();
-    while(it != end)
+    while (it != end)
     {
         QJsonObject json_node = json_root.at(it.key()).toObject();
         QScriptedNode* node = it.value();
@@ -200,3 +186,4 @@ bool editor::QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_
     return true;
 }
 
+} // namespace editor

@@ -3,6 +3,35 @@
 
 using editor::QScriptedGraph;
 
+namespace editor
+{
+namespace detail
+{
+
+QScriptedGraph* scripted_graph_factory()
+{
+    auto ctx = asGetActiveContext();
+
+    // Get the factory data object
+    auto udata = reinterpret_cast<const QScriptedGraph::FactoryData*>(ctx->GetUserData(0x01));
+    assert(udata != nullptr);
+
+    auto func = ctx->GetFunction(0);
+    if (func->GetObjectType() == 0 || strcmp(func->GetObjectType()->GetName(), "CGraph") != 0)
+    {
+        std::string msg = "Invalid attempt to manually instantiate ";
+        msg += "CProjectNative";
+        ctx->SetException(msg.c_str());
+        return nullptr;
+    }
+
+    auto obj = reinterpret_cast<asIScriptObject*>(ctx->GetThisPointer(0));
+    return new QScriptedGraph{ editor::script::ScriptObject::from_native(obj) };
+}
+
+} // namespace detail
+} // namespace editor
+
 asIScriptObject* asGraphCreateNodeProxy(QScriptedGraph* wks, std::string nodeclass)
 {
     auto* node = wks->newScriptNode(QString::fromStdString(nodeclass))->script_object().native();
@@ -27,6 +56,8 @@ std::string asGraphGetNameProxy(QScriptedGraph* wks)
 
 void editor::QScriptedGraph::registerTypeInterface(asIScriptEngine* engine)
 {
+    engine->RegisterObjectBehaviour(ClassName, asBEHAVE_FACTORY, "CGraphNative@ f()", asFUNCTION(detail::scripted_graph_factory), asCALL_CDECL);
+
     engine->RegisterObjectMethod(ClassName, "INode@ createNode(string)", asFUNCTION(asGraphCreateNodeProxy), asCALL_CDECL_OBJFIRST);
 
     // Properties

@@ -84,7 +84,18 @@ void QProjectSettings::set_default(QString key, QVariant value) noexcept
 
 auto QProjectSettings::get(QString key) const noexcept -> const QVariant&
 {
+    assert(_entries.contains(key));
     return *_entries.find(key);
+}
+
+auto QProjectSettings::get(QString key, QVariant default_value) const noexcept -> const QVariant&
+{
+    auto entry_it = _entries.find(key);
+    if (entry_it != _entries.end())
+    {
+        default_value = *entry_it;
+    }
+    return default_value;
 }
 
 } // namespace editor

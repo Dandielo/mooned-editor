@@ -1,21 +1,18 @@
 #pragma once
-#include "graph/interfaces/QGraphSerializer.h"
-#include "scripts/CScriptManager.h"
+#include <graph/interfaces/QGraphSerializer.h>
 
 namespace editor
 {
-    class QScriptedGraphSerializer : public QGraphSerializer
-    {
-    public:
-        QScriptedGraphSerializer();
-        virtual ~QScriptedGraphSerializer() override;
 
-        void initialize(Scripts::CScriptManager* script_manager);
+//! Graph serializer for script based graph objects.
+class QScriptedGraphSerializer : public QGraphSerializer
+{
+public:
+    //! Serializes the given graph to the given io device.
+    bool serialize(QIODevice* io, const QGraph* graph) const noexcept override;
 
-        virtual bool serialize(QIODevice* io, QGraph* graph) override;
-        virtual bool deserialize(QIODevice* io, QGraph* graph) override;
+    //! De-serializes the given graph from the given io device.
+    bool deserialize(QIODevice* io, QGraph* graph) noexcept override;
+};
 
-    private:
-        Scripts::CScriptManager* _script_manager;
-    };
-}
+} // namespace editor

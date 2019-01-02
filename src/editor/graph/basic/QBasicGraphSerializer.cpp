@@ -12,17 +12,10 @@
 
 #include <cassert>
 
-editor::QBasicGraphSerializer::QBasicGraphSerializer()
+namespace editor
 {
 
-}
-
-editor::QBasicGraphSerializer::~QBasicGraphSerializer()
-{
-
-}
-
-bool editor::QBasicGraphSerializer::serialize(QIODevice* io, QGraph* graph)
+bool QBasicGraphSerializer::serialize(QIODevice* io, const QGraph* graph) const noexcept
 {
     QJsonArray json_node_array;
 
@@ -95,7 +88,9 @@ bool editor::QBasicGraphSerializer::serialize(QIODevice* io, QGraph* graph)
     return true;
 }
 
-bool editor::QBasicGraphSerializer::deserialize(QIODevice* io, QGraph* graph)
+bool QBasicGraphSerializer::deserialize(QIODevice* io, QGraph* graph) noexcept
 {
     return true;
 }
+
+} // namespace editor

@@ -1,30 +1,43 @@
-#include "QProjectElement.h"
-#include "QProject.h"
+#include <project/interfaces/QProjectElement.h>
 
+#include <QDir>
 #include <cassert>
 
-editor::QProjectElement::QProjectElement(QProject* project)
-    : QObject{ project }
-    , _project{ project }
+namespace editor
 {
-    assert(_project != nullptr);
+
+QProjectElement::QProjectElement(QProjectElement* parent, QFileInfo element_file) noexcept
+    : QObject{ parent }
+    , _parent{ parent }
+    , _fileinfo{ std::move(element_file) }
+{
+    // Ensure the directory exist
+    _fileinfo.absoluteDir().mkpath(".");
 }
 
-editor::QProjectElement::~QProjectElement()
+auto QProjectElement::name() const noexcept -> QString
 {
+    return _fileinfo.baseName();
 }
 
-QString editor::QProjectElement::displayText() const
+auto QProjectElement::location() const noexcept -> QDir
 {
-    return name();
+    return _fileinfo.absoluteDir();
 }
 
-void editor::QProjectElement::save()
+auto QProjectElement::identifier() const noexcept -> QString
 {
-    /* do nothing */
+    return _fileinfo.absoluteFilePath();
 }
 
-void editor::QProjectElement::load()
+auto QProjectElement::project() noexcept -> QProject*
 {
-    /* do nothing */
+    return _parent->project();
 }
+
+auto QProjectElement::project() const noexcept -> const QProject*
+{
+    return _parent->project();
+}
+
+} // namespace editor

@@ -1,6 +1,7 @@
 #pragma once
-#include "graph/interfaces/QGraph.h"
-#include "scripts/CNativeScriptObject.h"
+#include <graph/interfaces/QGraph.h>
+#include <scripts/CNativeScriptObject.h>
+#include <scripts/CScriptManager.h>
 
 #include <QVector>
 
@@ -8,44 +9,50 @@ using Scripts::CNativeScriptObject;
 
 namespace editor
 {
-    class QScriptedNode;
-    class QScriptedGraphView;
 
-    class QScriptedGraph : public QGraph, public CNativeScriptObject<QScriptedGraph>
-    {
-        Q_OBJECT;
-        M_SCRIPT_TYPE(QScriptedGraph, "CGraph");
+class QScriptedNode;
+class QScriptedGraphView;
 
-    public:
-        QScriptedGraph(editor::script::ScriptObject&& object);
-        virtual ~QScriptedGraph() override;
+class QScriptedGraph : public QGraph, public CNativeScriptObject<QScriptedGraph>
+{
+    Q_OBJECT;
+    M_SCRIPT_TYPE(QScriptedGraph, "CGraph");
 
-        auto getScriptManager() const -> const auto* { return _script_manager; }
+public:
+    //! Alias for the script factory structure for this type.
+    using FactoryData = editor::script::FactoryUserdata<QScriptedGraph>;
 
-        void initialize(Scripts::CScriptManager* script_manager);
-        void shutdown();
+public:
+    QScriptedGraph(editor::script::ScriptObject&& object);
+    virtual ~QScriptedGraph() override;
 
-        virtual QString name() const override;
-        virtual QGraphView* view() const override;
-        virtual QGraphScene* scene() const override { return _scene; }
+    auto getScriptManager() const -> const auto* { return _script_manager; }
 
-        virtual void addNode(QNode* node) override;
-        virtual void removeNode(QNode* node) override;
-        virtual QVector<QNode*> nodes() const override;
+    void initialize(Scripts::CScriptManager* script_manager);
+    void shutdown();
 
-    public slots:
-        virtual QScriptedNode* newScriptNode(QString nodeclass);
+    virtual QString name() const override;
+    virtual QGraphView* view() const override;
+    virtual QGraphScene* scene() const override { return _scene; }
 
-    protected:
-        Scripts::CScriptManager* _script_manager;
-        asITypeInfo* _type;
+    virtual void addNode(QNode* node) override;
+    virtual void removeNode(QNode* node) override;
+    virtual QVector<QNode*> nodes() const override;
 
-        QGraphScene* _scene;
-        QScriptedGraphView* _view;
+public slots:
+    virtual QScriptedNode* newScriptNode(QString nodeclass);
 
-        QVector<QNode*> _nodes;
+protected:
+    Scripts::CScriptManager* _script_manager;
+    asITypeInfo* _type;
 
-    private:
-        friend class QScriptedGraphContextMenuHelper;
-    };
-}
+    QGraphScene* _scene;
+    QScriptedGraphView* _view;
+
+    QVector<QNode*> _nodes;
+
+private:
+    friend class QScriptedGraphContextMenuHelper;
+};
+
+} // namespace editor

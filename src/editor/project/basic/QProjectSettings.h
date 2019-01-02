@@ -33,6 +33,9 @@ public:
     //! \returns the value for the given key.
     auto get(QString key) const noexcept -> const QVariant&;
 
+    //! \returns the value for the given key or the default value.
+    auto get(QString key, QVariant default_value) const noexcept -> const QVariant&;
+
 private:
     QFileInfo _file_path;
     QMap<QString, QVariant> _entries;

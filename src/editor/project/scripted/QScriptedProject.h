@@ -32,6 +32,12 @@ public:
     //! \returns The projects script class name.
     auto class_name() const noexcept -> QString override;
 
+    //! \returns The projects current version.
+    auto version() const noexcept -> QVersionNumber override { return { 0, 1, 0 }; }
+
+    //! \returns A value for the given item data role.
+    auto value(Qt::ItemDataRole role) const noexcept -> QVariant override;
+
     void setScriptManager(Scripts::CScriptManager* script_manager);
 
     void initialize(QEditorMainWindow* mw) noexcept override;
@@ -51,7 +57,7 @@ signals:
 
 protected:
     virtual void onSave(QJsonObject& root) const override;
-    virtual void onLoad(const QJsonObject& root) override;
+    virtual void onLoad(const QJsonObject& root, const QVersionNumber& version) override;
 
     // Loading helpers
     void addGraph(QString classname, QString name);
