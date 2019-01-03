@@ -3,36 +3,37 @@
 #include <QTreeView>
 #include <QMenu>
 
-class QEditorMainWindow;
-
 namespace editor
 {
-    class QProjectContextMenuHelper : public QObject
-    {
-        Q_OBJECT;
+class QEditorMainWindow;
 
-    public:
-        QProjectContextMenuHelper(QTreeView* tree_view, QObject* parent = nullptr);
-        virtual ~QProjectContextMenuHelper() override;
+class QProjectContextMenuHelper : public QObject
+{
+    Q_OBJECT;
 
-        void initialize(QEditorMainWindow* mwindow);
+public:
+    QProjectContextMenuHelper(QTreeView* tree_view, QObject* parent = nullptr);
+    virtual ~QProjectContextMenuHelper() override;
 
-    protected:
-        void initializeProjectActions(QEditorMainWindow* mwindow);
+    void initialize(QEditorMainWindow* mwindow);
 
-    signals:
-        void saveProject(QString name);
-        void closeProject(QString name);
+protected:
+    void initializeProjectActions(QEditorMainWindow* mwindow);
 
-    public slots:
-        void onCustomContextMenuAction(const QPoint& pos);
-        void onMouseDoubleClickAction(const QModelIndex& index);
-        void onProjectMenuAction();
-        void onNodeMenuAction();
+signals:
+    void saveProject(QString name);
+    void closeProject(QString name);
 
-    private:
-        QTreeView* _tree_view;
-        QMenu* _project_menu;
-        QMenu* _node_menu;
-    };
-}
+public slots:
+    void onCustomContextMenuAction(const QPoint& pos);
+    void onMouseDoubleClickAction(const QModelIndex& index);
+    void onProjectMenuAction();
+    void onNodeMenuAction();
+
+private:
+    QTreeView* _tree_view;
+    QMenu* _project_menu;
+    QMenu* _node_menu;
+};
+
+} // namespace editor

@@ -22,8 +22,8 @@ class QProjectModel : public QAbstractItemModel
     Q_OBJECT;
 
 public:
-    //! Create a new model for the given tree view and parent.
-    QProjectModel(QTreeView* tree_view, QObject* parent = nullptr);
+    //! Create a project model.
+    QProjectModel() noexcept;
 
     //! Adds a project tree to the model.
     void add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept;

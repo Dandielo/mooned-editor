@@ -8,17 +8,17 @@ namespace editor
 
 //! Class holding any arbitrary and persistent key-value entry for a project.
 //! \note Loading and saving the settings file is done respectively on construction and destruction.
-class QProjectSettings final
+class QSettings
 {
 public:
-    QProjectSettings(QDir path) noexcept;
-    ~QProjectSettings() noexcept;
+    QSettings() noexcept = default;
+    virtual ~QSettings() noexcept = default;
 
     //! Loads the settings file.
-    void load() noexcept;
+    void load(const QJsonObject& from) noexcept;
 
     //! Saves the settings file.
-    void save() const noexcept;
+    void save(QJsonObject& to) const noexcept;
 
     //! Sets the value for the given key.
     //! \param key The setting key value
@@ -31,13 +31,12 @@ public:
     void set_default(QString key, QVariant value) noexcept;
 
     //! \returns the value for the given key.
-    auto get(QString key) const noexcept -> const QVariant&;
+    auto get(QString key) const noexcept -> QVariant;
 
     //! \returns the value for the given key or the default value.
-    auto get(QString key, QVariant default_value) const noexcept -> const QVariant&;
+    auto get(QString key, QVariant default_value) const noexcept -> QVariant;
 
 private:
-    QFileInfo _file_path;
     QMap<QString, QVariant> _entries;
 };
 

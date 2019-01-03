@@ -3,6 +3,8 @@
 #include "project/interfaces/QProjectElement.h"
 #include "scripts/CScriptManager.h"
 
+#include <settings/QSettings.h>
+
 namespace editor
 {
 
@@ -36,6 +38,10 @@ public:
     //! Saves graph data to file.
     void save() const noexcept override;
 
+    //! \returns The project settings object.
+    auto settings() noexcept -> QSettings& { return _settings; }
+    auto settings() const noexcept -> const QSettings& { return _settings; }
+
     //! \returns A value for the given item data role.
     auto value(Qt::ItemDataRole role) const noexcept -> QVariant override;
 
@@ -43,7 +49,11 @@ public:
     editor::QScriptedGraph* graph() const { return _graph; }
 
 private:
+    //! Holds the script class name of this element.
     const QString _class_name;
+
+    //! Holds specific setting for this element.
+    QSettings _settings;
 
     Scripts::CScriptManager* _script_manager{ nullptr };
     editor::QScriptedGraph* _graph{ nullptr };

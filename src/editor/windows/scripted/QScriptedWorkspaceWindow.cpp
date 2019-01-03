@@ -38,6 +38,27 @@ asIScriptObject* QEditorWindowNewWorkspaceProxy(QScriptedWorkspaceWindow* window
     return nullptr;
 }
 
+auto scripted_workspace_window_factory() noexcept -> QScriptedWorkspaceWindow*
+{
+    auto ctx = asGetActiveContext();
+
+    // Get the factory data object
+    auto udata = reinterpret_cast<const QScriptedWorkspaceWindow::FactoryData*>(ctx->GetUserData(0x01));
+    assert(udata != nullptr);
+
+    auto func = ctx->GetFunction(0);
+    if (func->GetObjectType() == 0 || strcmp(func->GetObjectType()->GetName(), "CWorkspaceWindow") != 0)
+    {
+        std::string msg = "Invalid attempt to manually instantiate ";
+        msg += "CProjectNative";
+        ctx->SetException(msg.c_str());
+        return nullptr;
+    }
+
+    auto obj = reinterpret_cast<asIScriptObject*>(ctx->GetThisPointer(0));
+    return new QScriptedWorkspaceWindow{ editor::script::ScriptObject::from_native(obj)  };
+}
+
 void QScriptedWorkspaceWindow::registerTypeInterface(asIScriptEngine* engine)
 {
     engine->RegisterInterface("IWorkspaceWindow");
@@ -46,6 +67,7 @@ void QScriptedWorkspaceWindow::registerTypeInterface(asIScriptEngine* engine)
     //engine->RegisterInterfaceMethod("IWorkspace", "void OnNewWorkspace(IWorkspace@)");
 
     assert(strcmp(ClassName, "CWorkspaceWindowNative") == 0);
+    engine->RegisterObjectBehaviour("CWorkspaceWindowNative", asBEHAVE_FACTORY, "CWorkspaceWindowNative@ f()", asFUNCTION(scripted_workspace_window_factory), asCALL_CDECL);
     //engine->RegisterObjectMethod("CWorkspaceWindowNative", "IWorkspaceWindow@ newWorkspaceWindow(string)", asFUNCTION(QEditorWindowNewWorkspaceProxy), asCALL_CDECL_OBJFIRST);
 }
 
@@ -61,7 +83,7 @@ QScriptedWorkspaceWindow::~QScriptedWorkspaceWindow()
 void QScriptedWorkspaceWindow::initialize(Scripts::CScriptManager* script_manager)
 {
     _script_manager = script_manager;
-    auto types = _script_manager->QueryTypes("[graph] : CGraph");
+    auto types = _script_manager->query_types("[graph] : CGraph");
 
     for (const auto& type : types)
     {

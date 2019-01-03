@@ -1,6 +1,6 @@
 #include <project/models/QProjectModel.h>
 #include <project/models/QProjectTreeNode.h>
-#include <project/models/QProjectTree.h>
+#include <project/models/QProjectTreeRoot.h>
 
 #include <project/interfaces/QProject.h>
 
@@ -28,14 +28,14 @@
 namespace editor
 {
 
-editor::QProjectModel::QProjectModel(QTreeView* tree_view, QObject* parent /* = nullptr */)
-    : QAbstractItemModel{ parent }
-    , _context_menu_helper{ tree_view, this }
+QProjectModel::QProjectModel() noexcept
+    : QAbstractItemModel{ nullptr }
+    , _context_menu_helper{ nullptr, this }
 {
     _sections << "Name";
 }
 
-void editor::QProjectModel::add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept
+void QProjectModel::add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept
 {
     auto project_it = std::find(_projects.begin(), _projects.end(), project.get());
     if (project_it == _projects.end())

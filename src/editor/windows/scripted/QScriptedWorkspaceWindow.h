@@ -12,6 +12,10 @@ class QScriptedWorkspaceWindow : public QWorkspaceWindow, public Scripts::CNativ
     M_SCRIPT_TYPE(QScriptedWorkspaceWindow, "CWorkspaceWindow");
 
 public:
+    //! Alias for the script factory structure for this type.
+    using FactoryData = editor::script::FactoryUserdata<QScriptedWorkspaceWindow>;
+
+public:
     QScriptedWorkspaceWindow(editor::script::ScriptObject&& obj);
     virtual ~QScriptedWorkspaceWindow() override;
 

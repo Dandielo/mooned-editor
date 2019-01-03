@@ -1,6 +1,6 @@
 #include "QProjectContextMenuHelper.h"
 #include "QProjectTreeNode.h"
-#include "QProjectTree.h"
+#include "QProjectTreeRoot.h"
 
 #include "project/interfaces/QProject.h"
 #include "project/dialogs/QDialogNewProjectGraph.h"
@@ -10,11 +10,14 @@
 #include <QModelIndex>
 #include <QMenu>
 
-//#todo create a metatype header
-Q_DECLARE_METATYPE(editor::ProjectTreeNode*);
-Q_DECLARE_METATYPE(editor::ProjectTreeRoot*);
+namespace editor
+{
 
-editor::QProjectContextMenuHelper::QProjectContextMenuHelper(QTreeView* tree_view, QObject* parent /* = nullptr */)
+//#todo create a metatype header
+Q_DECLARE_METATYPE(ProjectTreeNode*);
+Q_DECLARE_METATYPE(ProjectTreeRoot*);
+
+QProjectContextMenuHelper::QProjectContextMenuHelper(QTreeView* tree_view, QObject* parent /* = nullptr */)
     : QObject{ parent }
     , _tree_view{ tree_view }
     , _project_menu{ nullptr }
@@ -24,13 +27,13 @@ editor::QProjectContextMenuHelper::QProjectContextMenuHelper(QTreeView* tree_vie
     _node_menu = new QMenu{};
 }
 
-editor::QProjectContextMenuHelper::~QProjectContextMenuHelper()
+QProjectContextMenuHelper::~QProjectContextMenuHelper()
 {
     delete _node_menu;
     delete _project_menu;
 }
 
-void editor::QProjectContextMenuHelper::initialize(QEditorMainWindow* mwindow)
+void QProjectContextMenuHelper::initialize(QEditorMainWindow* mwindow)
 {
     QAction* action;
 
@@ -64,13 +67,13 @@ void editor::QProjectContextMenuHelper::initialize(QEditorMainWindow* mwindow)
     connect(_tree_view, &QTreeView::doubleClicked, this, &QProjectContextMenuHelper::onMouseDoubleClickAction);
 }
 
-void editor::QProjectContextMenuHelper::initializeProjectActions(QEditorMainWindow* mwindow)
+void QProjectContextMenuHelper::initializeProjectActions(QEditorMainWindow* mwindow)
 {
     connect(this, &QProjectContextMenuHelper::closeProject, mwindow, &QEditorMainWindow::onCloseProject);
     connect(this, &QProjectContextMenuHelper::saveProject, mwindow, (void(QEditorMainWindow::*)(QString)) &QEditorMainWindow::onSaveProject);
 }
 
-void editor::QProjectContextMenuHelper::onCustomContextMenuAction(const QPoint& pos)
+void QProjectContextMenuHelper::onCustomContextMenuAction(const QPoint& pos)
 {
     QModelIndex index = _tree_view->indexAt(pos);
     if (index.isValid())
@@ -91,7 +94,7 @@ void editor::QProjectContextMenuHelper::onCustomContextMenuAction(const QPoint& 
     }
 }
 
-void editor::QProjectContextMenuHelper::onMouseDoubleClickAction(const QModelIndex& index)
+void QProjectContextMenuHelper::onMouseDoubleClickAction(const QModelIndex& index)
 {
     if (index.isValid())
     {
@@ -105,7 +108,7 @@ void editor::QProjectContextMenuHelper::onMouseDoubleClickAction(const QModelInd
     }
 }
 
-void editor::QProjectContextMenuHelper::onProjectMenuAction()
+void QProjectContextMenuHelper::onProjectMenuAction()
 {
     auto* tree = qvariant_cast<ProjectTreeRoot*>(_project_menu->property("tree"));
 
@@ -120,26 +123,31 @@ void editor::QProjectContextMenuHelper::onProjectMenuAction()
 
     if (tree)
     {
-        emit_if_action("project.close", [&](QString node_name) {
-            emit closeProject(node_name);
-        });
-        emit_if_action("project.save", [&](QString node_name) {
-            emit saveProject(node_name);
-        });
-        emit_if_action("project.new graph", [&](QString node_name) {
-            auto* project = tree->project();
-            auto* dialog = new QDialogNewProjectGraph{ project };
-
-            connect(dialog, &QDialogNewProjectGraph::finished, [&, project](const QString& name) {
-                project->newGraph("ExampleGraph", name);
+        emit_if_action("project.close", [&](QString node_name)
+            {
+                emit closeProject(node_name);
             });
 
-            dialog->show();
-        });
+        emit_if_action("project.save", [&](QString node_name)
+            {
+                emit saveProject(node_name);
+            });
+
+        emit_if_action("project.new graph", [&](QString node_name)
+            {
+                auto* project = tree->project();
+                auto* dialog = new QDialogNewProjectGraph{ project };
+
+                connect(dialog, &QDialogNewProjectGraph::finished, [&, project](const QString& name) {
+                    project->newGraph("ExampleGraph", name);
+                    });
+
+                dialog->show();
+            });
     }
 }
 
-void editor::QProjectContextMenuHelper::onNodeMenuAction()
+void QProjectContextMenuHelper::onNodeMenuAction()
 {
     auto* node = qvariant_cast<ProjectTreeNode*>(_node_menu->property("node"));
     auto* tree = dynamic_cast<ProjectTreeRoot*>(node->parent());
@@ -157,15 +165,17 @@ void editor::QProjectContextMenuHelper::onNodeMenuAction()
     {
         emit_if_action("node.open", [&](QString node_name) {
             tree->project()->openElement(node_name);
-        });
+            });
         emit_if_action("node.save", [&](QString node_name) {
             tree->project()->saveElement(node_name);
-        });
+            });
         emit_if_action("node.delete", [&](QString node_name) {
             tree->project()->deleteElement(node_name);
-        });
+            });
         emit_if_action("node.export", [&](QString node_name) {
             tree->project()->exportElement(node_name);
-        });
+            });
     }
 }
+
+}  // namespace editor

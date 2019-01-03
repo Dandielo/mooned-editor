@@ -10,6 +10,8 @@
 #include "graph/scripted/QScriptedNodePin.h"
 #include "graph/scripted/QScriptedNodePinValue.h"
 
+#include <project/scripted/elements/QScriptedElementGraph.h>
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -22,9 +24,60 @@
 namespace editor
 {
 
-bool QScriptedGraphSerializer::serialize(QIODevice* io, const QGraph* graph) const noexcept
+bool QScriptedGraphSerializer::serialize(QIODevice* io, const QScriptedElementGraph* graph_element) const noexcept
 {
-    QJsonArray json_node_array;
+    // Create a array for all graph nodes.
+    QJsonArray graph_nodes;
+    serialize_nodes(graph_nodes, graph_element->graph());
+
+    // Create a object with setting-like values.
+    QJsonObject graph_settings;
+    graph_element->settings().save(graph_settings);
+
+    // Create a root object and set additional values.
+    QJsonObject graph_root;
+    graph_root.insert("settings", graph_settings);
+    graph_root.insert("nodes", graph_nodes);
+
+    // Write the file from the document.
+    QJsonDocument graph_document{ graph_root };
+    io->write(graph_document.toJson());
+    return true;
+}
+
+bool QScriptedGraphSerializer::deserialize(QIODevice* io, QScriptedElementGraph* graph_element) noexcept
+{
+    QByteArray data = io->readAll();
+
+    // Parse the given document
+    QJsonDocument graph_document = QJsonDocument::fromJson(data);
+    if (graph_document.isArray())
+    {
+        deserialize_nodes(graph_document.array(), graph_element->graph());
+    }
+    else
+    {
+        assert(graph_document.isObject());
+        auto graph_root = graph_document.object();
+        auto graph_settings = graph_root.value("settings");
+        auto graph_nodes = graph_root.value("nodes");
+
+        if (graph_settings.isObject())
+        {
+            graph_element->settings().load(graph_settings.toObject());
+        }
+
+        if (graph_nodes.isArray())
+        {
+            deserialize_nodes(graph_nodes.toArray(), graph_element->graph());
+        }
+    }
+
+    return true;
+}
+
+void QScriptedGraphSerializer::serialize_nodes(QJsonArray& json_target, const QScriptedGraph* graph) const noexcept
+{
 
     const auto&& nodes = graph->nodes();
     for (QNode* basic_node : nodes)
@@ -95,23 +148,12 @@ bool QScriptedGraphSerializer::serialize(QIODevice* io, const QGraph* graph) con
         editor_metadata.insert("pos_y", node->pos().y());
 
         json_node.insert("editor_metadata", editor_metadata);
-        json_node_array.append(json_node);
+        json_target.append(json_node);
     }
-
-    // generate the resulting document
-    QJsonDocument json_graph(json_node_array);
-    io->write(json_graph.toJson());
-    return true;
 }
 
-bool QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_graph) noexcept
+void QScriptedGraphSerializer::deserialize_nodes(const QJsonArray& json_root, QScriptedGraph* graph) noexcept
 {
-    QByteArray data = io->readAll();
-    QScriptedGraph* graph = static_cast<QScriptedGraph*>(basic_graph);
-
-    // Parse the given document
-    QJsonDocument json_project = QJsonDocument::fromJson(data);
-    QJsonArray json_root = json_project.array();
     QMap<int, QScriptedNode*> nodes;
 
     uint count = json_root.count();
@@ -183,7 +225,6 @@ bool QScriptedGraphSerializer::deserialize(QIODevice* io, QGraph* basic_graph) n
 
         ++it;
     }
-    return true;
 }
 
 } // namespace editor

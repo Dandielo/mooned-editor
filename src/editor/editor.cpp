@@ -15,9 +15,10 @@ int main(int argc, char** argv)
     int result;
     {
         QApplication app(argc, argv);
+        app.setApplicationName("MEditor");
         app.setStyle(QStyleFactory::create("Fusion"));
 
-        QEditorMainWindow mw;
+        editor::QEditorMainWindow mw;
         mw.show();
 
         result = app.exec();

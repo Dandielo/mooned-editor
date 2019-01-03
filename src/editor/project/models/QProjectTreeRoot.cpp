@@ -1,4 +1,4 @@
-#include <project/models/QProjectTree.h>
+#include <project/models/QProjectTreeRoot.h>
 #include <project/interfaces/QProject.h>
 
 namespace editor

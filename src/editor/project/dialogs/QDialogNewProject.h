@@ -6,7 +6,10 @@
 
 namespace Ui
 {
+
+//! The create project dialog UI.
 class DialogCreateProject;
+
 }
 
 namespace editor
@@ -15,7 +18,7 @@ namespace editor
 class QProjectTypesModel : public QAbstractItemModel
 {
 public:
-    QProjectTypesModel(const QVector<QString>& project_types);
+    QProjectTypesModel(const std::map<std::string, project::FactoryFunction>& project_types);
     ~QProjectTypesModel();
 
     int rowCount(const QModelIndex &parent) const override;
@@ -31,25 +34,32 @@ private:
     QVector<QString> _project_types;
 };
 
+//! Dialog opened when creating new projects.
 class QDialogNewProject : public QDialog
 {
     Q_OBJECT;
 
 public:
-    QDialogNewProject(QEditorMainWindow* main_window, QWidget* parent = nullptr);
-    virtual ~QDialogNewProject() override;
+    //! The main window widget.
+    QDialogNewProject(QEditorMainWindow* main_window);
 
 signals:
-    void finished(QProject* project);
+    //! Sends a signal with the data for the project factory.
+    //! \note Sent on dialog success.
+    void finished(const editor::project::FactoryData&) const;
 
-private slots:
-    void checkAndFinish();
+    //! Sends a signal with no data indicating, project creation was aborted.
+    void canceled() const;
+
+protected slots:
+    //! Called when the dialog was exited in any possible way.
+    void check_and_finish() noexcept;
 
 private:
-    Ui::DialogCreateProject* _ui;
+    //! The dialog UI representation;
+    std::unique_ptr<Ui::DialogCreateProject> _ui;
 
-    QMap<QString, SProjectTypeEntry> _projects;
-
+    //! The project model.
     QProjectTypesModel _model;
 };
 

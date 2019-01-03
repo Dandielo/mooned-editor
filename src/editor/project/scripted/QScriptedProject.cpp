@@ -104,14 +104,15 @@ void editor::QScriptedProject::initialize(QEditorMainWindow* mw) noexcept
     gatherExporters();
 
     // Create the project tree and register it in the view model
-    _model = mw->projectModel();
+    //_model = mw->projectModel();
+
     _project_tree = std::make_unique<editor::ScriptedProjectTreeRoot>(this);
 
-    _model->add_project(_project_tree);
+    //_model->add_project(_project_tree);
 
     // Connect project signals
-    connect(this, (void(editor::QScriptedProject::*)(QWorkspace*)) &editor::QScriptedProject::graphOpened, mw->workspaceWindow(), &QWorkspaceWindow::addWorkspace);
-    connect(this, &QScriptedProject::projectTreeChanged, _model, &QProjectModel::projectTreeChanged);
+    //connect(this, (void(editor::QScriptedProject::*)(QWorkspace*)) &editor::QScriptedProject::graphOpened, mw->workspaceWindow(), &QWorkspaceWindow::addWorkspace);
+    //connect(this, &QScriptedProject::projectTreeChanged, _model, &QProjectModel::projectTreeChanged);
 
     // Initialize all loaded elements
     for (auto& element : elements())
@@ -129,15 +130,15 @@ void editor::QScriptedProject::setScriptManager(Scripts::CScriptManager* script_
 
 void editor::QScriptedProject::shutdown()
 {
-    // Disconnect from all slots
-    disconnect(nullptr, nullptr, nullptr, nullptr);
+    //// Disconnect from all slots
+    //disconnect(nullptr, nullptr, nullptr, nullptr);
 
-    // Delete the project tree
-    _model->remove_project(_project_tree);
-    _project_tree.reset();
+    //// Delete the project tree
+    //_model->remove_project(_project_tree);
+    //_project_tree.reset();
 
-    // Shutdown completed?
-    _script_manager = nullptr;
+    //// Shutdown completed?
+    //_script_manager = nullptr;
 }
 
 void editor::QScriptedProject::newGraph(QString classname, QString name)
@@ -299,7 +300,7 @@ void editor::QScriptedProject::gatherExporters() noexcept
         {
             // Get the exporter type by name
             auto exporter_type_name = QString::fromStdString(*reinterpret_cast<const std::string*>(exporters_array->At(i)));
-            auto& exporter_type = _script_manager->GetTypeInfo(exporter_type_name.toStdString());
+            auto& exporter_type = _script_manager->find_type(exporter_type_name.toStdString());
 
             // Is the type defined and implements the proper interface?
             if (exporter_type && exporter_type->Implements(exporter_interface_type))

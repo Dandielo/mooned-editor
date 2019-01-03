@@ -44,7 +44,7 @@ void editor::QScriptedGraphContextMenuHelper::initialize(Scripts::CScriptManager
         for (uint i = 0; i < count; ++i)
         {
             auto* str = reinterpret_cast<std::string*>(queries->At(i));
-            auto queried_types = script_manager->QueryTypes(*str);
+            auto queried_types = script_manager->query_types(*str);
 
             for (const auto& type : queried_types)
             {

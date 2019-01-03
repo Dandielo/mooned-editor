@@ -3,10 +3,15 @@
 
 #include <QFileDialog>
 
-editor::QProjectTypesModel::QProjectTypesModel(const QVector<QString>& project_types)
+editor::QProjectTypesModel::QProjectTypesModel(const std::map<std::string, project::FactoryFunction>& project_types)
     : QAbstractItemModel{ }
-    , _project_types{ project_types }
-{ }
+    , _project_types{ }
+{
+    for (const auto& entry : project_types)
+    {
+        _project_types.append(QString::fromStdString(entry.first));
+    }
+}
 
 editor::QProjectTypesModel::~QProjectTypesModel()
 {
@@ -75,15 +80,23 @@ QVariant editor::QProjectTypesModel::headerData(int section, Qt::Orientation ori
     return {};
 }
 
-//////////////////////////////////////////////////////////////////////////
 
-editor::QDialogNewProject::QDialogNewProject(QEditorMainWindow* main_window, QWidget* parent /*= nullptr*/)
-    : QDialog{ parent }
-    , _ui{ new Ui::DialogCreateProject() }
-    , _projects{ main_window->getProjectTypes() }
-    , _model{ _projects.keys().toVector() }
+namespace editor
+{
+
+QDialogNewProject::QDialogNewProject(QEditorMainWindow* main_window)
+    : QDialog{ main_window }
+    , _ui{ std::make_unique<Ui::DialogCreateProject>() }
+    , _model{ main_window->project_factories() }
 {
     _ui->setupUi(this);
+
+    // Setup all default dialog connections
+    connect(_ui->projectDialogCancel, &QPushButton::clicked, this, &QDialogNewProject::check_and_finish);
+    connect(_ui->projectDialogCreate, &QPushButton::clicked, this, &QDialogNewProject::check_and_finish);
+    connect(this, &QDialogNewProject::finished, main_window, &QEditorMainWindow::open_project);
+
+    // Set the project model for the list of project types.
     _ui->projectTypeValue->setModel(&_model);
 
     // Prepare the UI
@@ -93,11 +106,9 @@ editor::QDialogNewProject::QDialogNewProject(QEditorMainWindow* main_window, QWi
 
     _ui->projectLocationValue->setReadOnly(true);
     _ui->projectLocationValue->setPlaceholderText("The project location value.");
-    _ui->projectLocationValue->setText(main_window->defalutProjectLocation());
+    _ui->projectLocationValue->setText(main_window->settings().get("projects.location").toString());
 
     // Connect actions
-    connect(_ui->projectDialogCancel, &QPushButton::clicked, this, &QDialog::close);
-    connect(_ui->projectDialogCreate, &QPushButton::clicked, this, &QDialogNewProject::checkAndFinish);
     connect(_ui->projectLocationChoose, &QToolButton::clicked, this, [this, main_window]()
         {
             QString project_location = QFileDialog::getExistingDirectory(this, "Project location...", _ui->projectLocationValue->text());
@@ -115,25 +126,23 @@ editor::QDialogNewProject::QDialogNewProject(QEditorMainWindow* main_window, QWi
         });
 }
 
-editor::QDialogNewProject::~QDialogNewProject()
+void editor::QDialogNewProject::check_and_finish() noexcept
 {
-    delete _ui;
-}
+    if (sender() == _ui->projectDialogCreate)
+    {
+        editor::project::FactoryData factory_data;
+        factory_data.class_name = _ui->projectTypeValue->currentData(Qt::UserRole).toString().toStdString();
+        factory_data.name = _ui->projectNameValue->text().toStdString();
+        factory_data.file = QDir::cleanPath(_ui->projectLocationValue->text() + "/" + QString::fromStdString(factory_data.name) + ".mprj");
 
-void editor::QDialogNewProject::checkAndFinish()
-{
-    QString selected_type = _ui->projectTypeValue->currentData(Qt::UserRole).toString();
-    QString project_name = _ui->projectNameValue->text();
-    QString project_location = _ui->projectLocationValue->text();
+        emit finished(factory_data);
+    }
+    else
+    {
+        emit canceled();
+    }
 
-    QString full_path = QDir::cleanPath(project_location + "/" + project_name + ".mprj");
-
-    auto selected_factory = _projects.find(selected_type);
-    assert(selected_factory != _projects.end());
-
-    QProject* project = selected_factory->factory(selected_type, project_name, full_path, selected_factory->userdata);
-
-    emit finished(project);
     close();
 }
 
+} // namespace editor

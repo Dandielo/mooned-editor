@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QVariant>
 #include <QFileInfo>
 
 namespace editor
@@ -51,4 +52,4 @@ private:
     QFileInfo _fileinfo;
 };
 
-}
+} // namespace editor

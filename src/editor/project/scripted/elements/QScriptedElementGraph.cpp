@@ -16,12 +16,16 @@ namespace editor
 QScriptedElementGraph::QScriptedElementGraph(QScriptedProject* project, QString classname, QString name)
     : QProjectElement{ project, project->location().filePath("graphs/" + name.toLower() + "_" + classname.toLower() + ".mgraph") }
     , _class_name{ std::move(classname) }
-{ }
+{
+    _settings.set_default("display_name", name);
+}
 
 QScriptedElementGraph::QScriptedElementGraph(QProjectElement* parent, QString classname, QFileInfo graph_file) noexcept
     : QProjectElement{ parent, graph_file }
     , _class_name{ std::move(classname) }
-{ }
+{
+    _settings.set_default("display_name", name());
+}
 
 void QScriptedElementGraph::initialize(Scripts::CScriptManager* script_manager)
 {
@@ -48,7 +52,7 @@ void QScriptedElementGraph::save() const noexcept
 
     if (file.isOpen())
     {
-        QScriptedGraphSerializer{}.serialize(&file, _graph);
+        QScriptedGraphSerializer{}.serialize(&file, this);
         file.close();
     }
 }
@@ -61,7 +65,7 @@ void QScriptedElementGraph::load() noexcept
 
     if (file.isOpen())
     {
-        QScriptedGraphSerializer{}.deserialize(&file, _graph);
+        QScriptedGraphSerializer{}.deserialize(&file, this);
         file.close();
     }
 }
@@ -70,7 +74,7 @@ auto QScriptedElementGraph::value(Qt::ItemDataRole role) const noexcept -> QVari
 {
     if (role == Qt::ItemDataRole::DisplayRole)
     {
-        return QString{ "%1 {%2}" }.arg(name(), _class_name);
+        return QString{ "%1 {%2}" }.arg(_settings.get("display_name", name()).toString(), _class_name);
     }
     return { };
 }

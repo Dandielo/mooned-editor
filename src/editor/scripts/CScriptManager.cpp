@@ -31,38 +31,33 @@ CScriptManager::CScriptManager()
     editor::QScriptedGraph::registerTypeNoFactory(script_engine);
     editor::QScriptedProject::registerTypeNoFactory(script_engine);
     editor::QScriptedProjectExporter::registerType(script_engine);
-    QScriptedWorkspaceWindow::registerType(script_engine);
+    QScriptedWorkspaceWindow::registerTypeNoFactory(script_engine);
 }
 
-void CScriptManager::Initialize(std::string init_file)
+void Scripts::CScriptManager::load(const std::filesystem::path& file) noexcept
 {
     using editor::script::Module;
 
-    // Get the 'default' module.
-    Module script_module = _engine.get_module("engine", Module::Policy::CreateIfMissing);
-    script_module.load_file(init_file);
+    auto script_module = _engine.get_module("engine", Module::Policy::CreateIfMissing);
+    script_module.load_file(file);
     script_module.finalize();
 
-    // Extract type information from this module
     _database.extract_module(script_module);
 }
 
-editor::script::Type Scripts::CScriptManager::GetTypeInfo(const std::string& type) const noexcept
+
+auto Scripts::CScriptManager::find_type(const std::string& name) const noexcept -> editor::script::Type
 {
     editor::script::Type result;
-
-    // Query for the given type
-    auto types = _database.query_types(type);
+    auto types = _database.query_types(name);
     if (!types.empty())
     {
-        // Only return the first result
         result = types.front();
     }
-
     return result;
 }
 
-std::vector<editor::script::Type> CScriptManager::QueryTypes(const std::string& query) const noexcept
+auto Scripts::CScriptManager::query_types(const std::string& query) const noexcept -> std::vector<editor::script::Type>
 {
     return _database.query_types(query);
 }

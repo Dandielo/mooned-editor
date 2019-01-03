@@ -28,7 +28,8 @@ public:
     CScriptManager();
     ~CScriptManager() = default;
 
-    void Initialize(std::string init_file);
+    //! Loads the given script file.
+    void load(const std::filesystem::path& file) noexcept;
 
     //! \returns The AngelAcript engine object.
     auto engine() noexcept -> Engine& { return _engine; }
@@ -36,14 +37,22 @@ public:
     //! \returns The AngelAcript engine object.
     auto engine() const noexcept -> const Engine& { return _engine; }
 
+    //! \returns A script type with the given name.
+    auto find_type(const std::string& name) const noexcept -> editor::script::Type;
+
+    //! Searches the script database for types which match the given query string.
+    //!   The query string consists of two parts which can be used separately:
+    //!   - the 'annotation' list: '[tag1, tag2, tag3=asd]'
+    //!   - the 'parent' check: ': ParentType'
+    //! \note A query with both parts may look like this: '[special_type] : BaseClass'
+    //! \returns A vector of types.
+    auto query_types(const std::string& query) const noexcept -> std::vector<editor::script::Type>;
+
     asITypeInfo* GetTypeByName(const std::string& name) const;
     std::string GetTypeAttr(asITypeInfo* type, std::string attribute) const;
     std::string GetTypeAttr(asITypeInfo* type, std::string attribute, std::string default) const;
     std::string GetPropertyAttr(asITypeInfo* type, int index, std::string attribute) const;
     std::string GetPropertyAttr(asITypeInfo* type, int index, std::string attribute, std::string default) const;
-
-    editor::script::Type GetTypeInfo(const std::string& type) const noexcept;
-    std::vector<editor::script::Type> QueryTypes(const std::string& query) const noexcept;
 
     template<typename ObjectType, template<typename> typename UserdataType>
     ObjectType* create_object(const std::string& name, const UserdataType<ObjectType>& userdata = editor::script::FactoryUserdata<ObjectType>{ }) noexcept

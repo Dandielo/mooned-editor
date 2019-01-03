@@ -1,5 +1,5 @@
 #pragma once
-#include <project/models/QProjectTree.h>
+#include <project/models/QProjectTreeRoot.h>
 
 namespace editor
 {

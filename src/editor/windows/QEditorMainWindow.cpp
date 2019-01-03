@@ -3,26 +3,16 @@
 #include "project/scripted/QScriptedProject.h"
 #include "project/dialogs/QDialogNewProject.h"
 
-#include "ui_mainwindow.h"
-
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QDebug>
+#include <QStandardPaths>
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
 
-static void destroyProject(editor::QProject* project)
-{
-    auto* scripted_project = dynamic_cast<editor::QScriptedProject*>(project);
-    if (nullptr != scripted_project)
-    {
-        scripted_project->save();
-        scripted_project->shutdown();
-    }
-    delete scripted_project;
-}
+#include <algorithm>
 
 static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects, QString name)
 {
@@ -38,145 +28,126 @@ static editor::QProject* findProjectByName(QVector<editor::QProject*>& projects,
     return result;
 }
 
-static editor::QProject* scriptedProjectFactory(const QString& type, const QString& name, const QString& file_path, Scripts::CScriptManager* script_manager)
+static void setup_main_menu_bar(editor::QEditorMainWindow* editor, Ui::QTWindow* ui, QMenuBar* menu)
 {
-    auto factory_userdata = ::editor::QScriptedProject::FactoryData{ QFileInfo{ file_path }, type };
+    QAction* action = ui->menuEdit->addAction("&Save");
+    action->setShortcut(QKeySequence::Save);
+    //QApplication::connect(action, &QAction::triggered, editor, &editor::QEditorMainWindow::onSave);
+
+    action = ui->menuEdit->addAction("&Open");
+    action->setShortcut(QKeySequence::Open);
+    //QApplication::connect(action, &QAction::triggered, editor, &editor::QEditorMainWindow::onLoad);
+
+    action = ui->menuEdit->addAction("&Export");
+    //QApplication::connect(action, &QAction::triggered, editor, &editor::QEditorMainWindow::onLoad);
+
+    // Project actions
+    action = ui->menuFile->addAction("&New project");
+    QApplication::connect(action, &QAction::triggered, editor, [editor]()
+        {
+            (new editor::QDialogNewProject{ editor })->show();
+        });
+    action = ui->menuFile->addAction("&Open project");
+    QApplication::connect(action, &QAction::triggered, editor, &editor::QEditorMainWindow::onOpenProject);
+    action = ui->menuFile->addAction("&Save project");
+    QApplication::connect(action, &QAction::triggered, editor, (void(editor::QEditorMainWindow::*)())&editor::QEditorMainWindow::onSaveProject);
+}
+
+namespace editor
+{
+namespace detail
+{
+
+//! A custom deleter for QWorkspaceWindow unique_ptr types.
+void custom_qworkspacewindow_deleter(QWorkspaceWindow* workspace_window) noexcept
+{
+    auto* window = dynamic_cast<QScriptedWorkspaceWindow*>(workspace_window);
+    window->shutdown();
+    window->deleteLater();
+}
+
+//! A custom deleter for QProject unique_ptr types.
+void custom_qproject_deleter(QProject* project) noexcept
+{
+    project->save();
+    project->deleteLater();
+}
+
+//! A factory function used for loading or creating projects based on script definitions.
+auto scripted_project_factory(Scripts::CScriptManager* script_manager, const editor::project::FactoryData& data) noexcept -> QProject*
+{
+    auto factory_userdata = QScriptedProject::FactoryData{ data.file, QString::fromStdString(data.class_name) };
 
     // Create the project object
-    auto* project = script_manager->create_object(type.toStdString(), factory_userdata);
+    auto* project = script_manager->create_object(data.class_name, factory_userdata);
     project->setScriptManager(script_manager);
     project->load();
 
     return project;
 }
 
-static void initializeEditorMainWindowMenu(QEditorMainWindow* editor, Ui::QTWindow* ui, QMenuBar* menu)
-{
-    QAction* action = ui->menuEdit->addAction("&Save");
-    action->setShortcut(QKeySequence::Save);
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onSave);
+} // namespace detail
 
-    action = ui->menuEdit->addAction("&Open");
-    action->setShortcut(QKeySequence::Open);
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onLoad);
-
-    action = ui->menuEdit->addAction("&Export");
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onLoad);
-
-    // Project actions
-    action = ui->menuFile->addAction("&New project");
-    QApplication::connect(action, &QAction::triggered, editor, [editor]()
-        {
-            auto* dialog = new editor::QDialogNewProject{ editor };
-            QApplication::connect(dialog, &editor::QDialogNewProject::finished, editor, &QEditorMainWindow::onNewProject);
-            dialog->show();
-        });
-    action = ui->menuFile->addAction("&Open project");
-    QApplication::connect(action, &QAction::triggered, editor, &QEditorMainWindow::onOpenProject);
-    action = ui->menuFile->addAction("&Save project");
-    QApplication::connect(action, &QAction::triggered, editor, (void(QEditorMainWindow::*)())&QEditorMainWindow::onSaveProject);
-}
-
-QEditorMainWindow::QEditorMainWindow()
+QEditorMainWindow::QEditorMainWindow() noexcept
     : QMainWindow{ }
-    , _workspace_window{ nullptr }
-    , _script_manager{ nullptr }
-    , _project_model{ nullptr }
-    , _active_project{ nullptr }
-    , _projects{ }
+    , _ui{ std::make_unique<Ui::QTWindow>() }
+    , _script_manager{ std::make_unique<Scripts::CScriptManager>() }
+    , _editor_settings{ QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) }
 {
-    Ui::QTWindow window_ui;
-    window_ui.setupUi(this);
+    // Setup default values for editor settings
+    _editor_settings.set_default("projects.location", QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/meditor/projects"));
 
-    // Script classes
-    _script_manager = new CScriptManager;
-    extern void registerEditorInterface(asIScriptEngine* engine);
-    asIScriptEngine* script_engine = _script_manager->engine().native();
-    registerEditorInterface(script_engine);
 
-    // Load all script project types
-    _script_manager->Initialize("../../src/scripts/main.as");
-    auto project_types = _script_manager->QueryTypes("[project] : CProject");
-    for (const auto& project_type : project_types)
-    {
-        registerProjectType(project_type.name().c_str(), reinterpret_cast<editor::TProjectFactory>(scriptedProjectFactory), _script_manager);
-    }
+    // Create required directories
+    QDir{ _editor_settings.get("projects.location").toString() }.mkpath(".");
+
+
+    // Setup the UI
+    _ui->setupUi(this);
+    setup_main_menu_bar(this, _ui.get(), _ui->menuBar);
+
+    // Load the main script file
+    _script_manager->load("../../src/scripts/main.as");
+
+
+    // Create the project model and assign it to the project tree view.
+    _project_model = std::make_unique<QProjectModel>();
+    _ui->projectsFileTree->setModel(_project_model.get());
+    _ui->projectsFileTree->setContextMenuPolicy(Qt::NoContextMenu); // Qt::CustomContextMenu
+
 
     // Create the workspace window
-    auto* workspace_window = _script_manager->CreateObject<QScriptedWorkspaceWindow, 1>("Editor");
-    workspace_window->initialize(_script_manager);
-    _workspace_window = workspace_window;
+    auto* workspace_window = _script_manager->create_object("Editor", editor::script::FactoryUserdata<QScriptedWorkspaceWindow>{ });
+    _workspace_window = QWorkspaceWindowPtr{ workspace_window, &detail::custom_qworkspacewindow_deleter };
 
-    // Apply the default workspace
-    window_ui.editorSpace->setStyleSheet("QMainWindow { border: 1px solid #333; }");
-    window_ui.editorSpace->layout()->addWidget(_workspace_window);
+    // Set the workspace window to the editorSpace layout.
+    _ui->editorSpace->setStyleSheet("QMainWindow { border: 1px solid #333; }");
+    _ui->editorSpace->layout()->addWidget(_workspace_window.get());
 
-    // Setup the menu bar
-    initializeEditorMainWindowMenu(this, &window_ui, window_ui.menuBar);
 
-    // Setup other UI elements
-    _project_model = new editor::QProjectModel{ window_ui.projectsFileTree };
-    _project_model->context_menu_helper().initialize(this);
-
-    window_ui.projectsFileTree->setModel(_project_model);
-    window_ui.projectsFileTree->setContextMenuPolicy(Qt::CustomContextMenu);
-
-    connect(window_ui.projectsFileTree, &QTreeView::customContextMenuRequested, &_project_model->context_menu_helper(), &editor::QProjectContextMenuHelper::onCustomContextMenuAction);
-}
-
-QEditorMainWindow::~QEditorMainWindow()
-{
-    for (auto* prj : _projects)
+    // Query for types annotated with the 'project' tag.
+    auto project_types = _script_manager->query_types("[project] : CProject");
+    for (const auto& project_type : project_types)
     {
-        destroyProject(prj);
+        _project_factories.emplace(project_type.name(), &detail::scripted_project_factory);
     }
-
-    reinterpret_cast<QScriptedWorkspaceWindow*>(_workspace_window)->shutdown();
-    delete _project_model;
-    delete _workspace_window;
-    delete _script_manager;
 }
 
-QString QEditorMainWindow::defalutProjectLocation()
+void QEditorMainWindow::add_project_factory(const std::string& class_name, editor::project::FactoryFunction factory) noexcept
 {
-    QDir projects_path = QDir::homePath() + "/meditor";
-    projects_path = projects_path.canonicalPath();
-
-    if (!projects_path.exists())
-    {
-        QDir(QDir::homePath()).mkdir("meditor");
-    }
-
-    return projects_path.canonicalPath();
+    _project_factories.emplace(class_name, std::move(factory));
 }
 
-void QEditorMainWindow::registerProjectType(QString type, editor::TProjectFactory factory, void* userdata)
+auto QEditorMainWindow::get_project_factory(const std::string& class_name) const noexcept -> const editor::project::FactoryFunction&
 {
-    _project_types.insert(type, { factory, userdata });
-}
-
-void QEditorMainWindow::onSave()
-{
-    //_workspace_window->onSave();
-}
-
-void QEditorMainWindow::onLoad()
-{
-    //_workspace_window->onLoad();
-}
-
-void QEditorMainWindow::onNewProject(editor::QProject* project)
-{
-    project->initialize(this);
-
-    _active_project = project;
-    _projects.append(_active_project);;
+    assert(_project_factories.count(class_name) > 0);
+    return _project_factories.at(class_name);
 }
 
 void QEditorMainWindow::onOpenProject()
 {
     // Find a project file
-    QString project_file_path = QFileDialog::getOpenFileName(this, tr("Open project file..."), defalutProjectLocation(), tr("Project files (*.mprj)"));
+    QString project_file_path = QFileDialog::getOpenFileName(this, tr("Open project file..."), _editor_settings.get("projects.location").toString(), tr("Project files (*.mprj)"));
 
     // Try to open the project file.
     QFile project_file{ project_file_path };
@@ -197,23 +168,8 @@ void QEditorMainWindow::onOpenProject()
     QJsonObject project_root = project_document.object();
     QString project_class = project_root.value("class").toString();
 
-    if (!_project_types.contains(project_class))
-    {
-        return;
-    }
-
-    // Create the given project from a registered factory
-    const auto& entry = _project_types[project_class];
-    editor::QProject* const project = (entry.factory)(project_class, "", project_file_path, entry.userdata);
-
-    // Initialize and register
-    if (project)
-    {
-        project->initialize(this);
-
-        _active_project = project;
-        _projects.append(_active_project);
-    }
+    // Call the slot
+    open_project({ project_class.toStdString(), "", QFileInfo{ project_file_path } });
 }
 
 void QEditorMainWindow::onSaveProject()
@@ -226,33 +182,62 @@ void QEditorMainWindow::onSaveProject()
 
 void QEditorMainWindow::onSaveProject(QString name)
 {
-    auto* project = findProjectByName(_projects, name);
-    if (project != nullptr)
+    auto it = std::find_if(_projects.begin(), _projects.end(), [&name](const QProjectPtr& project)
+        {
+            return project->name() == name;
+        });
+
+    // Save if found
+    if (it != _projects.end())
     {
-        project->save();
+        (*it)->save();
     }
 }
 
 void QEditorMainWindow::onCloseProject(QString name)
 {
-    auto* project = findProjectByName(_projects, name);
-    if (project != nullptr)
-    {
-        _projects.removeAt(_projects.indexOf(project));
-
-        if (project == _active_project)
+    auto it = std::find_if(_projects.begin(), _projects.end(), [&name](const QProjectPtr& project)
         {
-            if (_projects.isEmpty())
-            {
-                _active_project = nullptr;
-            }
-            else
-            {
-                _active_project = _projects.last();
-            }
-        }
+            return project->name() == name;
+        });
 
-        destroyProject(project);
+    // If a project was found erase it.
+    if (it != _projects.end())
+    {
+        _projects.erase(it);
+        _active_project = nullptr;
+    }
+
+    // Choose a new active project if needed.
+    if (!_projects.empty() && !_active_project)
+    {
+        _active_project = _projects.front().get();
     }
 }
 
+void QEditorMainWindow::open_project(const editor::project::FactoryData& data) noexcept
+{
+    if (_project_factories.count(data.class_name) == 0)
+    {
+        assert(false);
+        return;
+    }
+
+    // Get the factory...
+    const auto& project_factory = _project_factories.at(data.class_name);
+
+    // Create the project...
+    auto* const project = project_factory(_script_manager.get(), data);
+
+    // ???
+    if (project)
+    {
+        project->initialize(this);
+
+        // Profit!
+        _projects.emplace_back(project, &detail::custom_qproject_deleter);
+        _active_project = project;
+    }
+}
+
+} // namespace editor

@@ -26,6 +26,8 @@ project "TestEditor"
         "AsScriptStdString",
     }
 
+    flags { "MultiProcessorCompile" }
+
 
     -- Copy Qt libraries on post build steps
     filter { "Debug" }

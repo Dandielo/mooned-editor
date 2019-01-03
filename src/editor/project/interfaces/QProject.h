@@ -1,24 +1,18 @@
 #pragma once
 #include <interfaces/QWorkspace.h>
-#include <project/basic/QProjectSettings.h>
+#include <settings/QPersistentSettings.h>
 #include <project/interfaces/QProjectElement.h>
 
 #include <QVersionNumber>
 #include <QObject>
 #include <QDir>
 
-class QEditorMainWindow;
 
 namespace editor
 {
 
-using TProjectFactory = editor::QProject*(*)(const QString& t, const QString& n, const QString& f, void* ud);
-
-struct SProjectTypeEntry
-{
-    TProjectFactory factory;
-    void* userdata;
-};
+//! The editor main window class.
+class QEditorMainWindow;
 
 //! The base class for all project types in this editor application.
 //! \note Creating a QProject object does always create a valid object.
@@ -34,7 +28,7 @@ public:
     virtual ~QProject() noexcept = default;
 
     //! Initializes the project element.
-    virtual void initialize(QEditorMainWindow* editor) noexcept = 0;
+    virtual void initialize(editor::QEditorMainWindow* editor) noexcept = 0;
 
     //! \returns The projects class name.
     virtual auto class_name() const noexcept -> QString = 0;
@@ -43,8 +37,8 @@ public:
     virtual auto version() const noexcept -> QVersionNumber = 0;
 
     //! \returns The project settings object.
-    auto settings() noexcept -> QProjectSettings& { return _settings; }
-    auto settings() const noexcept -> const QProjectSettings& { return _settings; }
+    auto settings() noexcept -> QSettings& { return _settings; }
+    auto settings() const noexcept -> const QSettings& { return _settings; }
 
     //! Tries to load project information for associated the project file.
     void load() noexcept override;
@@ -103,10 +97,10 @@ protected:
 
 private:
     //! All project settings values.
-    QProjectSettings _settings;
+    QPersistentSettings _settings;
 
     //! Holds all elements part of this project.
     QMap<QString, QProjectElementPtr> _elements{ };
 };
 
-} // namespace editor
+} // namespace editor::project
