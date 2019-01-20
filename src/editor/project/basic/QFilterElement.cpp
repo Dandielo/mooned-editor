@@ -4,7 +4,7 @@ namespace editor
 {
 
 QFilterElement::QFilterElement(QProjectElement* parent, QFileInfo filter_file) noexcept
-    : QProjectElement{ parent, std::move(filter_file) }
+    : QProjectElement{ parent, filter_file.baseName() }
 {
     settings().set_default("display_name", "Filter");
 }

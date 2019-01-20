@@ -234,6 +234,9 @@ void QEditorMainWindow::open_project(const editor::project::FactoryData& data) n
     {
         project->initialize(this);
 
+        _project_model->add_project(project);
+        connect(project, &QProject::projectNodeChanged, _project_model.get(), &QProjectModel::projectTreeChanged);
+
         // Profit!
         _projects.emplace_back(project, &detail::custom_qproject_deleter);
         _active_project = project;

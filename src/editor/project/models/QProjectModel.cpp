@@ -1,29 +1,7 @@
 #include <project/models/QProjectModel.h>
-#include <project/models/QProjectTreeNode.h>
-#include <project/models/QProjectTreeRoot.h>
-
 #include <project/interfaces/QProject.h>
 
 #include <algorithm>
-
-//static editor::QProjectTree* find(QVector<editor::QProjectTree*>& projects, editor::QProject* to_find)
-//{
-//    editor::QProjectTree* tree = nullptr;
-//    for (editor::QProjectTree* prj : projects)
-//    {
-//        if (prj->project() == to_find)
-//        {
-//            tree = prj;
-//            break;
-//        }
-//    }
-//    return tree;
-//}
-//
-//static bool contains(QVector<editor::QProjectTree*>& projects, editor::QProject* to_find)
-//{
-//    return find(projects, to_find) != nullptr;
-//}
 
 namespace editor
 {
@@ -35,24 +13,24 @@ QProjectModel::QProjectModel() noexcept
     _sections << "Name";
 }
 
-void QProjectModel::add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept
+void QProjectModel::add_project(QProject* project) noexcept
 {
-    auto project_it = std::find(_projects.begin(), _projects.end(), project.get());
+    auto project_it = std::find(_projects.begin(), _projects.end(), project);
     if (project_it == _projects.end())
     {
         int project_count = static_cast<int>(_projects.size());
 
         beginInsertRows({}, project_count, project_count);
 
-        _projects.push_back(project.get());
+        _projects.push_back(project);
 
         endInsertRows();
     }
 }
 
-void editor::QProjectModel::remove_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept
+void editor::QProjectModel::remove_project(QProject* project) noexcept
 {
-    auto project_it = std::find(_projects.begin(), _projects.end(), project.get());
+    auto project_it = std::find(_projects.begin(), _projects.end(), project);
     if (project_it != _projects.end())
     {
         auto index = std::distance(_projects.begin(), project_it);
@@ -78,7 +56,7 @@ int editor::QProjectModel::rowCount(const QModelIndex &parent /*= QModelIndex()*
     }
     else
     {
-        return reinterpret_cast<ProjectTreeNode*>(parent.internalPointer())->child_count();
+        return reinterpret_cast<QProjectTreeNode*>(parent.internalPointer())->child_nodes().size();
     }
 }
 
@@ -94,17 +72,17 @@ QModelIndex editor::QProjectModel::index(int row, int column, const QModelIndex 
         return { };
     }
 
-    ProjectTreeNode* parent_node = nullptr;
+    QProjectTreeNode* parent_node = nullptr;
     if (!parent.isValid())
     {
         return createIndex(row, column, _projects.at(row));
     }
     else
     {
-        parent_node = reinterpret_cast<ProjectTreeNode*>(parent.internalPointer());
+        parent_node = reinterpret_cast<QProjectTreeNode*>(parent.internalPointer());
     }
 
-    ProjectTreeNode* child_node = parent_node->child(row);
+    QProjectTreeNode* child_node = parent_node->child_nodes().at(row);
     if (child_node)
     {
         return createIndex(row, column, child_node);
@@ -122,15 +100,30 @@ QModelIndex editor::QProjectModel::parent(const QModelIndex &child) const
         return { };
     }
 
-    auto* child_node = reinterpret_cast<ProjectTreeNode*>(child.internalPointer());
-    auto* parent_node = child_node->parent();
+    auto* cnode = reinterpret_cast<QProjectTreeNode*>(child.internalPointer());
+    auto* pnode = cnode->parent_node();
 
-    if (parent_node == nullptr)
+    if (pnode == nullptr)
     {
         return { };
     }
 
-    return createIndex(static_cast<int>(parent_node->index()), 0, parent_node);
+    int pindex = 0;
+    if (pnode->parent_node() != nullptr)
+    {
+        pindex = pnode->parent_node()->child_nodes().indexOf(pnode);
+    }
+    else
+    {
+        auto it = std::find_if(_projects.begin(), _projects.end(), [pnode](QProject* project)
+            {
+                return pnode == project;
+            });
+
+        pindex = static_cast<int>(std::distance(_projects.begin(), it));
+    }
+
+    return createIndex(pindex, 0, pnode);
 }
 
 QVariant editor::QProjectModel::data(const QModelIndex &index, int role /*= Qt::DisplayRole*/) const
@@ -145,7 +138,7 @@ QVariant editor::QProjectModel::data(const QModelIndex &index, int role /*= Qt::
         return { };
     }
 
-    auto* node = reinterpret_cast<ProjectTreeNode*>(index.internalPointer());
+    auto* node = reinterpret_cast<QProjectTreeNode*>(index.internalPointer());
     return { node->value(Qt::DisplayRole) };
 }
 
@@ -157,7 +150,7 @@ QVariant editor::QProjectModel::headerData(int section, Qt::Orientation orientat
     return { };
 }
 
-void editor::QProjectModel::projectTreeChanged(ProjectTreeRoot* /*root_node*/)
+void editor::QProjectModel::projectTreeChanged(QProjectTreeNode* /*root_node*/)
 {
     layoutChanged();
 }

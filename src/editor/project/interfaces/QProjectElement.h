@@ -3,6 +3,8 @@
 #include <QVariant>
 #include <QFileInfo>
 
+#include <project/interfaces/QProjectTreeNode.h>
+
 namespace editor
 {
 
@@ -10,26 +12,13 @@ namespace editor
 class QProject;
 
 //! A simple base class for all entities a project may hold.
-class QProjectElement : public QObject
+class QProjectElement : public QProjectTreeNode
 {
     Q_OBJECT;
 
 public:
     //! An object element is created with a valid project pointer.
-    QProjectElement(QProjectElement* parent, QFileInfo element_file) noexcept;
-
-    //! \returns The file associated for this project element.
-    auto fileinfo() const noexcept -> const QFileInfo& { return _fileinfo; }
-
-    //! \returns The element name.
-    //! \note The element name is the base name of the file path.
-    auto name() const noexcept -> QString;
-
-    //! \returns The location where the file is located.
-    auto location() const noexcept -> QDir;
-
-    //! \returns A unique identifier for this element.
-    auto identifier() const noexcept -> QString;
+    QProjectElement(QProjectElement* parent, QString element_name) noexcept;
 
     //! \returns The project associated with this element.
     virtual auto project() noexcept -> QProject*;
@@ -41,15 +30,30 @@ public:
     //! An empty implementation for saving project elements.
     virtual void save() const noexcept { /* empty */ }
 
-    //! \returns A value for the given item data role.
-    virtual auto value(Qt::ItemDataRole role) const noexcept -> QVariant = 0;
+public:
+    //! Adds the given element to the project.
+    //! \param[in] element The element to be added to the project.
+    //! \returns true If the element was added to the project.
+    bool add_element(QProjectElement* element) noexcept;
 
-private:
-    //! The parent element
-    QProjectElement* const _parent;
+    //! Tries to remove the given element from the project.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    //! \note If the element is not part of the project, nothing will happen.
+    void remove_element(const QString& identifier) noexcept;
 
-    //! The elements URI.
-    QFileInfo _fileinfo;
+    //! Searches for an element of the given identifier and returns a pointer to it.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    //! \returns A pointer to the requested element or nullptr if nothing was found.
+    auto get_element(const QString& identifier) noexcept -> QProjectElement*;
+    auto get_element(const QString& identifier) const noexcept -> const QProjectElement*;
+
+    //! Checks if the project contains an element with the given identifier.
+    //! \param[in] identifier A string value representing a unique id the the project.
+    bool contains_element(const QString& identifier) const noexcept;
+
+    //! \returns A list of all elements in the project.
+    auto elements() noexcept -> QList<QProjectElement*>;
+    auto elements() const noexcept -> QList<const QProjectElement*>;
 };
 
 } // namespace editor

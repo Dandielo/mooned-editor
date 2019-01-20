@@ -13,7 +13,7 @@ namespace editor
 class QGraph;
 class QProject;
 
-class ProjectTreeRoot;
+class QProjectTreeNode;
 
 //! Implements the QAbstractItemModel to visualize project trees in a QTreeView.
 //! \note This model allows to visualize more than one tree at a time.
@@ -26,10 +26,10 @@ public:
     QProjectModel() noexcept;
 
     //! Adds a project tree to the model.
-    void add_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept;
+    void add_project(QProject* project) noexcept;
 
     //! Removes a project tree from the model.
-    void remove_project(const std::unique_ptr<ProjectTreeRoot>& project) noexcept;
+    void remove_project(QProject* project) noexcept;
 
     //! \returns The context menu helper object of this model.
     auto context_menu_helper() noexcept -> QProjectContextMenuHelper& { return _context_menu_helper; }
@@ -52,14 +52,14 @@ protected:
 public slots:
     //////////////////////////////////////////////////////////////////////////
     // Definition of additional slots available to connect with this project.
-    void projectTreeChanged(ProjectTreeRoot* tree);
+    void projectTreeChanged(QProjectTreeNode* project);
 
 private:
     //! List of sections to be displayed in this model.
     QVector<QString> _sections{ };
 
     //! List of all projects to be displayed in this model.
-    std::vector<ProjectTreeRoot*> _projects{ };
+    std::vector<QProject*> _projects{ };
 
     //! Helper object with contextual actions.
     QProjectContextMenuHelper _context_menu_helper;

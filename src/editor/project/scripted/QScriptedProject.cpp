@@ -5,8 +5,6 @@
 
 #include "project/models/QProjectModel.h"
 #include "project/dialogs/QDialogExportProjectElement.h"
-#include "project/scripted/nodes/QScriptedProjectTree.h"
-#include "project/scripted/nodes/QScriptedGraphNode.h"
 #include "project/scripted/elements/QScriptedElementGraph.h"
 
 #include <QPointer>
@@ -31,26 +29,23 @@ namespace editor
 //    }
 //}
 
-static void loadProjectElement(editor::QProjectElement* element, Scripts::CScriptManager* script_manager, editor::ProjectTreeRoot* project_tree)
+static void loadProjectElement(editor::QProjectElement* element, Scripts::CScriptManager* script_manager)
 {
     auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
     if (nullptr != graph_element)
     {
         graph_element->initialize(script_manager);
         graph_element->load();
-
-        // Add the node to the tree
-        project_tree->add(std::make_unique<editor::ScriptedGraphNode>(graph_element, project_tree));
     }
 }
 
-static void saveProjectElement(QJsonObject& graph_object, editor::QProjectElement* element)
+static void saveProjectElement(QJsonObject& graph_object, const editor::QProjectElement* element)
 {
-    QProject* project = element->project();
-    auto* graph = dynamic_cast<editor::QScriptedElementGraph*>(element);
+    const QProject* project = element->project();
+    auto* graph = dynamic_cast<const editor::QScriptedElementGraph*>(element);
     if (nullptr != graph)
     {
-        graph_object.insert("file", project->location().relativeFilePath(element->fileinfo().absoluteFilePath()));
+        graph_object.insert("name", graph->name());
         graph_object.insert("class", graph->class_name());
         graph->save();
     }
@@ -60,9 +55,9 @@ static void saveProjectElement(QJsonObject& graph_object, editor::QProjectElemen
     }
 }
 
-auto findProjectElementByDisplayText(QMap<QString, QProject::QProjectElementPtr>& elements, QString text) -> QProject::QProjectElementPtr
+auto findProjectElementByDisplayText(QList<QProjectElement*>& elements, QString text) -> QProjectElement*
 {
-    QProject::QProjectElementPtr result;
+    QProjectElement* result;
     for (const auto& element : elements)
     {
         if (element->value(Qt::ItemDataRole::DisplayRole).toString() == text)
@@ -103,24 +98,17 @@ void editor::QScriptedProject::initialize(QEditorMainWindow* mw) noexcept
     // Initialize internal data
     gatherExporters();
 
-    // Create the project tree and register it in the view model
-    //_model = mw->projectModel();
-
-    _project_tree = std::make_unique<editor::ScriptedProjectTreeRoot>(this);
-
-    //_model->add_project(_project_tree);
-
     // Connect project signals
     //connect(this, (void(editor::QScriptedProject::*)(QWorkspace*)) &editor::QScriptedProject::graphOpened, mw->workspaceWindow(), &QWorkspaceWindow::addWorkspace);
-    //connect(this, &QScriptedProject::projectTreeChanged, _model, &QProjectModel::projectTreeChanged);
 
     // Initialize all loaded elements
     for (auto& element : elements())
     {
-        loadProjectElement(element, _script_manager, _project_tree.get());
+        loadProjectElement(element, _script_manager);
     }
 
-    emit projectTreeChanged(_project_tree.get());
+    // Emits the 'projectNodeChanged' signal.
+    projectNodeChanged(this);
 }
 
 void editor::QScriptedProject::setScriptManager(Scripts::CScriptManager* script_manager)
@@ -148,15 +136,12 @@ void editor::QScriptedProject::newGraph(QString classname, QString name)
         QScriptedElementGraph* element = new editor::QScriptedElementGraph{ this, classname, name };
         element->initialize(_script_manager);
 
-        // Add the node to the tree
-        _project_tree->add(std::make_unique<editor::ScriptedGraphNode>(element, _project_tree.get()));
-
         // Add the element to the project.
         add_element(element);
 
-        // Emit signals
-        emit projectTreeChanged(_project_tree.get());
-        emit graphOpened(element->graph());
+        // Emits the 'projectNodeChanged' signal.
+        projectNodeChanged(this);
+        graphOpened(element->graph());
     }
 }
 
@@ -164,10 +149,10 @@ void editor::QScriptedProject::openElement(QString name)
 {
     if (auto element = findProjectElementByDisplayText(elements(), name))
     {
-        auto* graph_element = dynamic_cast<QScriptedElementGraph*>(element.data());
+        auto* graph_element = dynamic_cast<QScriptedElementGraph*>(element);
         if (nullptr != graph_element)
         {
-            emit graphOpened(graph_element->graph());
+            graphOpened(graph_element->graph());
         }
     }
 }
@@ -189,7 +174,7 @@ void editor::QScriptedProject::exportElement(QString name)
 {
     if (auto element = findProjectElementByDisplayText(elements(), name))
     {
-        auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element.data());
+        auto* graph_element = dynamic_cast<editor::QScriptedElementGraph*>(element);
 
         auto* dialog = new editor::QDialogExportProjectElement{ _script_manager, _exporters, settings().get("export.location").toString(), element };
         dialog->show();
@@ -223,6 +208,19 @@ void editor::QScriptedProject::onLoad(const QJsonObject& root, const QVersionNum
     std::function<void(const QJsonObject&)> element_loader;
 
     if (loaded_ver >= version())
+    {
+        element_loader = [&](const QJsonObject& element)
+        {
+            QString graph_name = element.value("name").toString();
+            QString graph_class = element.value("class").toString();
+
+            if (!graph_name.isEmpty() && !graph_class.isEmpty())
+            {
+                addGraph(graph_class, graph_name);
+            }
+        };
+    }
+    else if (loaded_ver == QVersionNumber{ 0, 1, 0 })
     {
         element_loader = [&](const QJsonObject& element)
         {

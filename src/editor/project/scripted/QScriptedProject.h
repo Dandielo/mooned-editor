@@ -13,8 +13,6 @@ namespace editor
 class QProjectModel;
 class QScriptedGraph;
 
-class ProjectTreeRoot;
-
 //! A project implementation based on the AngelScript language.
 //! \note This class is partially defined in a script file and cannot be created outside the script engine.
 class QScriptedProject : public QProject, public Scripts::CNativeScriptObject<QScriptedProject>
@@ -33,7 +31,7 @@ public:
     auto class_name() const noexcept -> QString override;
 
     //! \returns The projects current version.
-    auto version() const noexcept -> QVersionNumber override { return { 0, 1, 0 }; }
+    auto version() const noexcept -> QVersionNumber override { return { 0, 1, 1 }; }
 
     //! \returns A value for the given item data role.
     auto value(Qt::ItemDataRole role) const noexcept -> QVariant override;
@@ -52,7 +50,6 @@ public:
     virtual void exportElement(QString name) override;
 
 signals:
-    void projectTreeChanged(ProjectTreeRoot* tree);
     void graphOpened(editor::QScriptedGraph* graph);
 
 protected:
@@ -75,9 +72,6 @@ private:
 
     // The global script manager
     Scripts::CScriptManager* _script_manager{ nullptr };
-
-    // The project tree (with graphs etc.)
-    std::unique_ptr<editor::ProjectTreeRoot> _project_tree{ nullptr };
 
     // The project model
     QProjectModel* _model{ nullptr };

@@ -12,17 +12,24 @@
 
 namespace editor
 {
-
-QScriptedElementGraph::QScriptedElementGraph(QScriptedProject* project, QString classname, QString name)
-    : QProjectElement{ project, project->location().filePath("graphs/" + name.toLower() + "_" + classname.toLower() + ".mgraph") }
-    , _class_name{ std::move(classname) }
-{
-    _settings.set_default("display_name", name);
-}
+//
+//QScriptedElementGraph::QScriptedElementGraph(QScriptedProject* project, QString classname, QString name)
+//    : QProjectElement{ project, name } //project->location().filePath("graphs/" + name.toLower() + "_" + classname.toLower() + ".mgraph") }
+//    , _class_name{ std::move(classname) }
+//{
+//    _settings.set_default("display_name", name);
+//}
 
 QScriptedElementGraph::QScriptedElementGraph(QProjectElement* parent, QString classname, QFileInfo graph_file) noexcept
-    : QProjectElement{ parent, graph_file }
+    : QProjectElement{ parent, graph_file.baseName() }
     , _class_name{ std::move(classname) }
+{
+    _settings.set_default("display_name", name());
+}
+
+QScriptedElementGraph::QScriptedElementGraph(QProjectElement* parent, QString graph_class, QString graph_name) noexcept
+    : QProjectElement{ parent, std::move(graph_name) }
+    , _class_name{ std::move(graph_class) }
 {
     _settings.set_default("display_name", name());
 }
@@ -47,7 +54,9 @@ void QScriptedElementGraph::shutdown()
 
 void QScriptedElementGraph::save() const noexcept
 {
-    QFile file{ fileinfo().absoluteFilePath() };
+    QFileInfo fileinfo{ project()->location().absoluteFilePath("graphs"), name().toLower() + "_" + _class_name.toLower() + ".mgraph" };
+
+    QFile file{ fileinfo.absoluteFilePath() };
     file.open(QFile::Text | QFile::WriteOnly);
 
     if (file.isOpen())
@@ -59,7 +68,9 @@ void QScriptedElementGraph::save() const noexcept
 
 void QScriptedElementGraph::load() noexcept
 {
-    QString path = fileinfo().absoluteFilePath();
+    QFileInfo fileinfo{ project()->location().absoluteFilePath("graphs"), name().toLower() + "_" + _class_name.toLower() + ".mgraph" };
+
+    QString path = fileinfo.absoluteFilePath();
     QFile file{ path };
     file.open(QFile::Text | QFile::ReadOnly);
 

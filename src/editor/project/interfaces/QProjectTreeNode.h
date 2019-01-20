@@ -27,16 +27,25 @@ public:
     auto name() const noexcept -> const QString& { return _name; }
 
     //! \returns The parent node or nullptr for the root node.
-    auto parent_node() const noexcept -> QProjectTreeNode*;
+    auto parent_node() noexcept -> QProjectTreeNode*;
+    auto parent_node() const noexcept -> const QProjectTreeNode*;
 
     //! \returns All child nodes.
-    auto child_nodes() const noexcept -> QList<QProjectTreeNode*>;
+    auto child_nodes() noexcept -> QList<QProjectTreeNode*>;
+    auto child_nodes() const noexcept -> QList<const QProjectTreeNode*>;
 
     //! \returns The tree node URI identifier.
     virtual auto resource_uri() const noexcept -> QUrl;
 
     //! \returns The tree node type.
     virtual auto type() const noexcept -> Type = 0;
+
+    //! \returns A value for the given item data role.
+    virtual auto value(Qt::ItemDataRole role) const noexcept -> QVariant = 0;
+
+signals:
+    //! Emitted when the this node or it's children changed.
+    void projectNodeChanged(QProjectTreeNode* node);
 
 private:
     //! The name of the node.
