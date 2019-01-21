@@ -4,15 +4,18 @@ project "TestEditor"
     qtmodules { "core", "gui", "widgets", "opengl" }
 
     files {
-        "**.cpp",
-        "**.h",
-        "**.ui",
-        "**.inl",
-        "**.natvis",
+        "public/**.h",
+        "public/**.inl",
+        "private/**.cpp",
+        "private/**.h",
+        "private/**.ui",
+        "private/**.inl",
+        "natvis/**.natvis",
     }
 
     includedirs {
-        ".",
+        "public",
+        "private",
         "../contrib/angelscript/include",
         "../contrib/angelscript/add_on/scriptbuilder",
         "../contrib/angelscript/add_on/scriptstdstring",
@@ -28,6 +31,13 @@ project "TestEditor"
 
     flags { "MultiProcessorCompile" }
 
+    vpaths {
+        [""] = { "premake5.lua" },
+        ["Source/*"] = { "private/**", "public/meditor/**" },
+        ["Natvis"] = { "natvis/**.natvis" },
+        ["Generated/Moc/*"] = { "../../tmp/obj/**.cpp" },
+        ["Generated/Ui/*"] = { "../../tmp/obj/**.h" }
+    }
 
     -- Copy Qt libraries on post build steps
     filter { "Debug" }
