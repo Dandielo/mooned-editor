@@ -6,6 +6,9 @@ namespace editor
 //! The settings class.
 class QSettings;
 
+//! The project manager class.
+class QProjectManager;
+
 //! A interface for the editor application instance.
 class QEditorApp
 {
@@ -19,6 +22,10 @@ public:
     //! \returns The application settings object.
     virtual auto settings() noexcept -> QSettings& = 0;
     virtual auto settings() const noexcept -> const QSettings& = 0;
+
+    //! \returns The application project manager object.
+    virtual auto projectManager() noexcept -> QProjectManager& = 0;
+    virtual auto projectManager() const noexcept -> const QProjectManager& = 0;
 };
 
 } // namespace editor

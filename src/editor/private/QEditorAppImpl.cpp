@@ -14,7 +14,6 @@ namespace detail
 
 QEditorAppImpl::QEditorAppImpl(int argc, char** argv) noexcept
     : _app_native{ argc, argv }
-    , _app_settings{ nullptr }
 {
     editor_application_instance = this;
 
